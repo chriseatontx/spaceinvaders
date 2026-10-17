@@ -30,11 +30,26 @@ var ROW_POINTS = [30, 20, 20, 10, 10];
 var ROW_COLORS = ["#ff4fd8", "#7f7fff", "#4fd8ff", "#4fff4f", "#d8ff4f"];
 var SHIELD_COLOR = "#3fae5f";
 
+function loadHiScore() {
+  try {
+    var v = parseInt(localStorage.getItem("si-hiscore"), 10);
+    return isNaN(v) ? 0 : v;
+  } catch (e) {
+    return 0;
+  }
+}
+
+function saveHiScore(v) {
+  try {
+    localStorage.setItem("si-hiscore", String(v));
+  } catch (e) {}
+}
+
 function Game(cv) {
   this.ctx = cv.getContext("2d");
   this.state = "title";
   this.input = { left: false, right: false, fire: false, enter: false };
-  this.hiScore = 0;
+  this.hiScore = loadHiScore();
   this.reset();
   this.state = "title";
 }
@@ -105,6 +120,7 @@ Game.prototype.overlap = function (a, b) {
 Game.prototype.gameOver = function () {
   this.state = "gameover";
   if (this.score > this.hiScore) this.hiScore = this.score;
+  saveHiScore(this.hiScore);
 };
 
 Game.prototype.update = function (dt) {
@@ -246,12 +262,14 @@ Game.prototype.render = function () {
 
   if (this.state === "title") {
     this.text(c, "SPACE INVADERS", W / 2, 200, "48px monospace", "#4fd8ff");
+    this.text(c, "HI-SCORE: " + this.hiScore, W / 2, 250, "20px monospace", "#d8ff4f");
     this.text(c, "Press ENTER to Start", W / 2, 300, "20px monospace", "#ffffff");
     this.text(c, "Move: Arrows / A-D   Fire: Space", W / 2, 360, "16px monospace", "#9a9a9a");
     return;
   }
   if (this.state === "gameover") {
     this.text(c, "GAME OVER", W / 2, 220, "48px monospace", "#ff4f4f");
+    this.text(c, "HI-SCORE: " + this.hiScore, W / 2, 260, "20px monospace", "#d8ff4f");
     this.text(c, "Score: " + this.score, W / 2, 300, "20px monospace", "#ffffff");
     this.text(c, "Press ENTER to Restart", W / 2, 360, "20px monospace", "#9a9a9a");
     return;
