@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Space Invaders</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #000; }
+  canvas { display: block; margin: auto; }
+  #game { width: 800px; height: 600px; }
+</style>
+</head>
+<body>
+<canvas id="game" width="800" height="600"></canvas>
+<script>
+"use strict";
+
+var canvas = document.getElementById("game");
+var W = canvas.width;
+var H = canvas.height;
+
+var COLS = 11;
+var ROWS = 5;
+var CELL_W = 32;
+var CELL_H = 24;
+var INV_W = 24;
+var INV_H = 16;
+var MARGIN = 16;
+var DROP = 12;
+var ROW_POINTS = [30, 20, 20, 10, 10];
+var ROW_COLORS = ["#ff4fd8", "#7f7fff", "#4fd8ff", "#4fff4f", "#d8ff4f"];
+var SHIELD_COLOR = "#3fae5f";
+
+function Game(cv) {
+  this.ctx = cv.getContext("2d");
+  this.state = "title";
+  this.input = { left: false, right: false, fire: false, enter: false };
+  this.hiScore = 0;
+  this.reset();
+  this.state = "title";
+}
+
+Game.prototype.reset = function () {
+  this.score = 0;
+  this.lives = 3;
+  this.wave = 1;
+  this.state = "playing";
+  this.transitionTimer = 0;
+  this.fireCooldown = 0;
+  this.enemyFireTimer = 1.2;
+  this.playerBullet = null;
+  this.enemyBullets = [];
+  this.player = { x: W / 2 - 18, y: H - 44, w: 36, h: 16, speed: 260, invuln: 0 };
+  this.spawnWave();
+};
+
+Game.prototype.spawnWave = function () {
+  this.invaders = [];
+  var startY = 60 + Math.min(160, (this.wave - 1) * 16);
+  var startX = (W - COLS * CELL_W) / 2;
+  for (var r = 0; r < ROWS; r++) {
+    for (var c = 0; c < COLS; c++) {
+      this.invaders.push({
+        alive: true,
+        row: r,
+        x: startX + c * CELL_W + (CELL_W - INV_W) / 2,
+        y: startY + r * CELL_H + (CELL_H - INV_H) / 2,
+        w: INV_W,
+        h: INV_H
+      });
+    }
+  }
+  this.total = this.invaders.length;
+  this.alive = this.total;
+  this.dir = 1;
+  this.buildShields();
+};
+
+Game.prototype.buildShields = function () {
+  this.shields = [];
+  var cell = 8;
+  var shieldW = 8 * cell;
+  var shieldH = 4 * cell;
+  var gap = (W - 4 * shieldW) / 5;
+  var y = H - 130;
+  for (var s = 0; s < 4; s++) {
+    var x = gap + s * (shieldW + gap);
+    for (var gy = 0; gy < 4; gy++) {
+      for (var gx = 0; gx < 8; gx++) {
+        this.shields.push({ x: x + gx * cell, y: y + gy * cell, w: cell, h: cell });
+      }
+    }
+  }
+};
+
+Game.prototype.marchSpeed = function () {
+  var base = 40 + this.wave * 12;
+  var killed = this.total - this.alive;
+  return base * (1 + 1.4 * killed / this.total);
+};
+
+Game.prototype.overlap = function (a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+};
+
+Game.prototype.gameOver = function () {
+  this.state = "gameover";
+  if (this.score > this.hiScore) this.hiScore = this.score;
+};
+
+Game.prototype.update = function (dt) {
+  if (this.state === "title" || this.state === "gameover") {
+    if (this.input.enter) {
+      this.input.enter = false;
+      this.reset();
+    }
+    return;
+  }
+  if (this.state === "waveTransition") {
+    this.transitionTimer -= dt;
+    if (this.transitionTimer <= 0) {
+      this.wave++;
+      this.spawnWave();
+      this.state = "playing";
+    }
+    return;
+  }
+
+  var p = this.player;
+  p.invuln = Math.max(0, p.invuln - dt);
+  if (this.input.left) p.x -= p.speed * dt;
+  if (this.input.right) p.x += p.speed * dt;
+  p.x = Math.max(MARGIN, Math.min(W - MARGIN - p.w, p.x));
+
+  this.fireCooldown -= dt;
+  if (this.input.fire && this.playerBullet === null && this.fireCooldown <= 0) {
+    this.playerBullet = { x: p.x + p.w / 2 - 1, y: p.y, w: 2, h: 8, vy: -420 };
+    this.fireCooldown = 0.35;
+  }
+
+  var speed = this.marchSpeed() * dt;
+  var minX = W, maxX = 0;
+  var i, inv;
+  for (i = 0; i < this.invaders.length; i++) {
+    inv = this.invaders[i];
+    if (!inv.alive) continue;
+    if (inv.x < minX) minX = inv.x;
+    if (inv.x + inv.w > maxX) maxX = inv.x + inv.w;
+  }
+  if (this.alive > 0 && ((maxX + speed > W - MARGIN && this.dir > 0) || (minX - speed < MARGIN && this.dir < 0))) {
+    this.dir = -this.dir;
+    for (i = 0; i < this.invaders.length; i++) {
+      if (this.invaders[i].alive) this.invaders[i].y += DROP;
+    }
+  } else {
+    for (i = 0; i < this.invaders.length; i++) {
+      if (this.invaders[i].alive) this.invaders[i].x += this.dir * speed;
+    }
+  }
+
+  this.enemyFireTimer -= dt;
+  if (this.enemyFireTimer <= 0 && this.enemyBullets.length < 3 && this.alive > 0) {
+    var shooter = this.invaders[Math.floor(Math.random() * this.invaders.length)];
+    if (shooter.alive) {
+      this.enemyBullets.push({ x: shooter.x + shooter.w / 2 - 1, y: shooter.y + shooter.h, w: 3, h: 8, vy: 170 + this.wave * 20 });
+    }
+    var rate = Math.max(0.25, 0.9 - this.wave * 0.08) * (0.5 + Math.random());
+    this.enemyFireTimer = rate * this.alive / this.total;
+  }
+
+  var j, eb;
+  for (j = this.enemyBullets.length - 1; j >= 0; j--) {
+    eb = this.enemyBullets[j];
+    eb.y += eb.vy * dt;
+    if (eb.y > H) { this.enemyBullets.splice(j, 1); continue; }
+    if (this.hitShield(eb)) { this.enemyBullets.splice(j, 1); continue; }
+    if (this.playerBullet && this.overlap(eb, this.playerBullet)) {
+      this.playerBullet = null;
+      this.enemyBullets.splice(j, 1);
+      continue;
+    }
+    if (p.invuln <= 0 && this.overlap(eb, p)) {
+      this.enemyBullets.splice(j, 1);
+      this.lives--;
+      p.invuln = 1.5;
+      if (this.lives <= 0) { this.gameOver(); return; }
+      continue;
+    }
+  }
+
+  if (this.playerBullet) {
+    var b = this.playerBullet;
+    b.y += b.vy * dt;
+    if (b.y + b.h < 0) { this.playerBullet = null; }
+    else if (this.hitShield(b)) { this.playerBullet = null; }
+    else {
+      for (i = 0; i < this.invaders.length; i++) {
+        inv = this.invaders[i];
+        if (inv.alive && this.overlap(b, inv)) {
+          inv.alive = false;
+          this.alive--;
+          this.score += ROW_POINTS[inv.row];
+          this.playerBullet = null;
+          break;
+        }
+      }
+    }
+  }
+
+  for (i = 0; i < this.invaders.length; i++) {
+    inv = this.invaders[i];
+    if (!inv.alive) continue;
+    if (inv.y + inv.h >= p.y) { this.gameOver(); return; }
+    var hitAny = false;
+    for (j = this.shields.length - 1; j >= 0; j--) {
+      if (this.overlap(inv, this.shields[j])) {
+        this.shields.splice(j, 1);
+        hitAny = true;
+      }
+    }
+    if (hitAny) {
+      inv.alive = false;
+      this.alive--;
+    }
+  }
+
+  if (this.alive <= 0) {
+    this.state = "waveTransition";
+    this.transitionTimer = 2;
+  }
+};
+
+Game.prototype.hitShield = function (bullet) {
+  for (var j = 0; j < this.shields.length; j++) {
+    if (this.overlap(bullet, this.shields[j])) {
+      this.shields.splice(j, 1);
+      return true;
+    }
+  }
+  return false;
+};
+
+Game.prototype.render = function () {
+  var c = this.ctx;
+  c.fillStyle = "#000000";
+  c.fillRect(0, 0, W, H);
+
+  if (this.state === "title") {
+    this.text(c, "SPACE INVADERS", W / 2, 200, "48px monospace", "#4fd8ff");
+    this.text(c, "Press ENTER to Start", W / 2, 300, "20px monospace", "#ffffff");
+    this.text(c, "Move: Arrows / A-D   Fire: Space", W / 2, 360, "16px monospace", "#9a9a9a");
+    return;
+  }
+  if (this.state === "gameover") {
+    this.text(c, "GAME OVER", W / 2, 220, "48px monospace", "#ff4f4f");
+    this.text(c, "Score: " + this.score, W / 2, 300, "20px monospace", "#ffffff");
+    this.text(c, "Press ENTER to Restart", W / 2, 360, "20px monospace", "#9a9a9a");
+    return;
+  }
+
+  var i, s, inv;
+  for (i = 0; i < this.shields.length; i++) {
+    s = this.shields[i];
+    c.fillStyle = SHIELD_COLOR;
+    c.fillRect(s.x, s.y, s.w, s.h);
+  }
+  for (i = 0; i < this.invaders.length; i++) {
+    inv = this.invaders[i];
+    if (!inv.alive) continue;
+    c.fillStyle = ROW_COLORS[inv.row];
+    c.fillRect(inv.x, inv.y, inv.w, inv.h);
+    c.fillStyle = "#000000";
+    c.fillRect(inv.x + 4, inv.y + 4, 4, 4);
+    c.fillRect(inv.x + inv.w - 8, inv.y + 4, 4, 4);
+  }
+
+  var p = this.player;
+  if (!(p.invuln > 0 && Math.floor(p.invuln * 8) % 2 === 0)) {
+    c.fillStyle = "#d8ff4f";
+    c.fillRect(p.x, p.y + 6, p.w, p.h - 6);
+    c.fillRect(p.x + p.w / 2 - 3, p.y, 6, 6);
+  }
+
+  c.fillStyle = "#ffffff";
+  if (this.playerBullet) c.fillRect(this.playerBullet.x, this.playerBullet.y, this.playerBullet.w, this.playerBullet.h);
+  for (i = 0; i < this.enemyBullets.length; i++) {
+    var eb = this.enemyBullets[i];
+    c.fillRect(eb.x, eb.y, eb.w, eb.h);
+  }
+
+  this.text(c, "SCORE " + this.score, 12, 20, "16px monospace", "#ffffff", "left");
+  this.text(c, "WAVE " + this.wave, W - 12, 20, "16px monospace", "#9a9a9a", "right");
+  for (i = 0; i < this.lives; i++) {
+    c.fillStyle = "#d8ff4f";
+    c.fillRect(12 + i * 26, H - 16, 18, 8);
+  }
+  if (this.state === "waveTransition") {
+    this.text(c, "WAVE " + (this.wave + 1) + " INCOMING", W / 2, 300, "24px monospace", "#4fd8ff");
+  }
+};
+
+Game.prototype.text = function (c, str, x, y, font, color, align) {
+  c.font = font;
+  c.fillStyle = color;
+  c.textAlign = align || "center";
+  c.fillText(str, x, y);
+  c.textAlign = "left";
+};
+
+var game = new Game(canvas);
+
+window.addEventListener("keydown", function (e) {
+  var k = e.key;
+  if (k === "ArrowLeft" || k === "a" || k === "A") game.input.left = true;
+  else if (k === "ArrowRight" || k === "d" || k === "D") game.input.right = true;
+  else if (k === " ") game.input.fire = true;
+  else if (k === "Enter") game.input.enter = true;
+});
+window.addEventListener("keyup", function (e) {
+  var k = e.key;
+  if (k === "ArrowLeft" || k === "a" || k === "A") game.input.left = false;
+  else if (k === "ArrowRight" || k === "d" || k === "D") game.input.right = false;
+  else if (k === " ") game.input.fire = false;
+  else if (k === "Enter") game.input.enter = false;
+});
+
+var lastTime = performance.now();
+function frame() {
+  var now = performance.now();
+  var dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+  game.update(dt);
+  game.render();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
