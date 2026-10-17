@@ -2,7 +2,11 @@
 
 A single-file browser clone of Space Invaders. Everything lives in `index.html` — no build step, no dependencies, no network calls.
 
-## How to run
+## Play it online
+
+[Play the game](https://chriseatontx.github.io/spaceinvaders/) — served from GitHub Pages.
+
+## How to run locally
 
 Open `index.html` directly in any modern browser:
 
