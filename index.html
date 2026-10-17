@@ -35,6 +35,121 @@ var UFO_Y = 36;
 var UFO_SPEED = 90;
 var UFO_POINTS = [100, 200, 300];
 
+var audioCtx = null;
+var muted = false;
+var ufoSound = null;
+
+function initAudio() {
+  try {
+    var Ctor = window.AudioContext || window.webkitAudioContext;
+    if (Ctor) audioCtx = new Ctor();
+  } catch (e) {
+    audioCtx = null;
+  }
+}
+
+function toggleMute() {
+  muted = !muted;
+  if (muted) stopUfoSound();
+}
+
+function stopUfoSound() {
+  if (!ufoSound) return;
+  try {
+    if (ufoSound.osc) ufoSound.osc.stop();
+  } catch (e) {}
+  ufoSound = null;
+}
+
+function playNote(freq, delay, dur, type, vol, freqEnd) {
+  if (!audioCtx || muted) return;
+  try {
+    var start = audioCtx.currentTime + delay;
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, start);
+    if (freqEnd !== null) {
+      osc.frequency.exponentialRampToValueAtTime(Math.max(1, freqEnd), start + dur);
+    }
+    gain.gain.setValueAtTime(vol, start);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(start);
+    osc.stop(start + dur);
+  } catch (e) {}
+}
+
+function playFire() {
+  playNote(900, 0, 0.08, "square", 0.08, 300);
+}
+
+function playExplosion() {
+  playNote(180, 0, 0.18, "sawtooth", 0.12, 40);
+}
+
+function playDeath() {
+  playNote(320, 0, 0.35, "triangle", 0.12, 80);
+}
+
+function playUfoSpawn() {
+  playNote(160, 0, 0.25, "sine", 0.08, 520);
+}
+
+function playUfoHit() {
+  playNote(520, 0, 0.22, "sawtooth", 0.14, 120);
+}
+
+function playWaveJingle() {
+  if (!audioCtx || muted) return;
+  try {
+    playNote(523, 0, 0.12, "square", 0.08, null);
+    playNote(659, 0.12, 0.12, "square", 0.08, null);
+    playNote(784, 0.24, 0.16, "square", 0.08, null);
+  } catch (e) {}
+}
+
+function playGameOver() {
+  if (!audioCtx || muted) return;
+  try {
+    playNote(300, 0, 0.25, "triangle", 0.12, 120);
+    playNote(220, 0.25, 0.25, "triangle", 0.12, 90);
+    playNote(150, 0.5, 0.35, "triangle", 0.12, 60);
+  } catch (e) {}
+}
+
+function startUfoSound() {
+  if (!audioCtx || muted || ufoSound) return;
+  try {
+    var osc = audioCtx.createOscillator();
+    var gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 220;
+    gain.gain.value = 0.06;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    ufoSound = { osc: osc, gain: gain, started: audioCtx.currentTime };
+  } catch (e) {
+    ufoSound = null;
+  }
+}
+
+function updateUfoSound(u) {
+  if (!ufoSound) {
+    startUfoSound();
+    return;
+  }
+  try {
+    var t = audioCtx.currentTime - ufoSound.started;
+    var freq = 180 + 120 * Math.sin(t * 18) + (u.x / W) * 80;
+    ufoSound.osc.frequency.setValueAtTime(Math.max(50, freq), audioCtx.currentTime);
+    ufoSound.gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+  } catch (e) {}
+}
+
+
 function loadHiScore() {
   try {
     var v = parseInt(localStorage.getItem("si-hiscore"), 10);
@@ -72,6 +187,7 @@ Game.prototype.reset = function () {
   this.player = { x: W / 2 - 18, y: H - 44, w: 36, h: 16, speed: 260, invuln: 0 };
   this.ufo = null;
   this.ufoTimer = 15 + Math.random() * 10;
+  stopUfoSound();
   this.spawnWave();
 };
 
@@ -128,6 +244,8 @@ Game.prototype.gameOver = function () {
   this.state = "gameover";
   if (this.score > this.hiScore) this.hiScore = this.score;
   saveHiScore(this.hiScore);
+  stopUfoSound();
+  playGameOver();
 };
 
 Game.prototype.update = function (dt) {
@@ -135,6 +253,7 @@ Game.prototype.update = function (dt) {
     if (this.input.enter) {
       this.input.enter = false;
       this.reset();
+      playWaveJingle();
     }
     return;
   }
@@ -144,6 +263,7 @@ Game.prototype.update = function (dt) {
       this.wave++;
       this.spawnWave();
       this.state = "playing";
+      playWaveJingle();
     }
     return;
   }
@@ -158,6 +278,7 @@ Game.prototype.update = function (dt) {
   if (this.input.fire && this.playerBullet === null && this.fireCooldown <= 0) {
     this.playerBullet = { x: p.x + p.w / 2 - 1, y: p.y, w: 2, h: 8, vy: -420 };
     this.fireCooldown = 0.35;
+    playFire();
   }
 
   var speed = this.marchSpeed() * dt;
@@ -185,11 +306,13 @@ Game.prototype.update = function (dt) {
     if (this.ufoTimer <= 0) {
       this.ufo = { x: -UFO_W, y: UFO_Y, w: UFO_W, h: UFO_H, dir: 1, speed: UFO_SPEED, points: UFO_POINTS[Math.floor(Math.random() * UFO_POINTS.length)] };
       this.ufoTimer = 15 + Math.random() * 10;
+      playUfoSpawn();
     }
   } else {
     this.ufo.x += this.ufo.dir * this.ufo.speed * dt;
     if (this.ufo.x > W) this.ufo = null;
   }
+  if (this.ufo) updateUfoSound(this.ufo); else stopUfoSound();
 
   this.enemyFireTimer -= dt;
   if (this.enemyFireTimer <= 0 && this.enemyBullets.length < 3 && this.alive > 0) {
@@ -215,6 +338,7 @@ Game.prototype.update = function (dt) {
     if (p.invuln <= 0 && this.overlap(eb, p)) {
       this.enemyBullets.splice(j, 1);
       this.lives--;
+      if (this.lives > 0) playDeath();
       p.invuln = 1.5;
       if (this.lives <= 0) { this.gameOver(); return; }
       continue;
@@ -228,6 +352,8 @@ Game.prototype.update = function (dt) {
     else if (this.hitShield(b)) { this.playerBullet = null; }
     else if (this.ufo && this.overlap(b, this.ufo)) {
       this.score += this.ufo.points;
+      stopUfoSound();
+      playUfoHit();
       this.ufo = null;
       this.playerBullet = null;
     }
@@ -238,6 +364,7 @@ Game.prototype.update = function (dt) {
           inv.alive = false;
           this.alive--;
           this.score += ROW_POINTS[inv.row];
+          playExplosion();
           this.playerBullet = null;
           break;
         }
@@ -259,6 +386,7 @@ Game.prototype.update = function (dt) {
     if (hitAny) {
       inv.alive = false;
       this.alive--;
+      playExplosion();
     }
   }
 
@@ -288,6 +416,7 @@ Game.prototype.render = function () {
     this.text(c, "HI-SCORE: " + this.hiScore, W / 2, 250, "20px monospace", "#d8ff4f");
     this.text(c, "Press ENTER to Start", W / 2, 300, "20px monospace", "#ffffff");
     this.text(c, "Move: Arrows / A-D   Fire: Space", W / 2, 360, "16px monospace", "#9a9a9a");
+    this.text(c, "M: Mute", W / 2, 400, "16px monospace", "#9a9a9a");
     return;
   }
   if (this.state === "gameover") {
@@ -344,6 +473,7 @@ Game.prototype.render = function () {
     c.fillStyle = "#d8ff4f";
     c.fillRect(12 + i * 26, H - 16, 18, 8);
   }
+  this.text(c, muted ? "SOUND: OFF" : "SOUND: ON", W - 12, H - 12, "12px monospace", "#9a9a9a", "right");
   if (this.state === "waveTransition") {
     this.text(c, "WAVE " + (this.wave + 1) + " INCOMING", W / 2, 300, "24px monospace", "#4fd8ff");
   }
@@ -358,6 +488,7 @@ Game.prototype.text = function (c, str, x, y, font, color, align) {
 };
 
 var game = new Game(canvas);
+initAudio();
 
 window.addEventListener("keydown", function (e) {
   var k = e.key;
@@ -365,6 +496,7 @@ window.addEventListener("keydown", function (e) {
   else if (k === "ArrowRight" || k === "d" || k === "D") game.input.right = true;
   else if (k === " ") game.input.fire = true;
   else if (k === "Enter") game.input.enter = true;
+  else if ((k === "m" || k === "M") && !e.repeat) toggleMute();
 });
 window.addEventListener("keyup", function (e) {
   var k = e.key;
