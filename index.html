@@ -29,6 +29,11 @@ var DROP = 12;
 var ROW_POINTS = [30, 20, 20, 10, 10];
 var ROW_COLORS = ["#ff4fd8", "#7f7fff", "#4fd8ff", "#4fff4f", "#d8ff4f"];
 var SHIELD_COLOR = "#3fae5f";
+var UFO_W = 24;
+var UFO_H = 12;
+var UFO_Y = 36;
+var UFO_SPEED = 90;
+var UFO_POINTS = [100, 200, 300];
 
 function loadHiScore() {
   try {
@@ -65,6 +70,8 @@ Game.prototype.reset = function () {
   this.playerBullet = null;
   this.enemyBullets = [];
   this.player = { x: W / 2 - 18, y: H - 44, w: 36, h: 16, speed: 260, invuln: 0 };
+  this.ufo = null;
+  this.ufoTimer = 15 + Math.random() * 10;
   this.spawnWave();
 };
 
@@ -173,6 +180,17 @@ Game.prototype.update = function (dt) {
     }
   }
 
+  this.ufoTimer -= dt;
+  if (this.ufo === null) {
+    if (this.ufoTimer <= 0) {
+      this.ufo = { x: -UFO_W, y: UFO_Y, w: UFO_W, h: UFO_H, dir: 1, speed: UFO_SPEED, points: UFO_POINTS[Math.floor(Math.random() * UFO_POINTS.length)] };
+      this.ufoTimer = 15 + Math.random() * 10;
+    }
+  } else {
+    this.ufo.x += this.ufo.dir * this.ufo.speed * dt;
+    if (this.ufo.x > W) this.ufo = null;
+  }
+
   this.enemyFireTimer -= dt;
   if (this.enemyFireTimer <= 0 && this.enemyBullets.length < 3 && this.alive > 0) {
     var shooter = this.invaders[Math.floor(Math.random() * this.invaders.length)];
@@ -208,6 +226,11 @@ Game.prototype.update = function (dt) {
     b.y += b.vy * dt;
     if (b.y + b.h < 0) { this.playerBullet = null; }
     else if (this.hitShield(b)) { this.playerBullet = null; }
+    else if (this.ufo && this.overlap(b, this.ufo)) {
+      this.score += this.ufo.points;
+      this.ufo = null;
+      this.playerBullet = null;
+    }
     else {
       for (i = 0; i < this.invaders.length; i++) {
         inv = this.invaders[i];
@@ -289,6 +312,16 @@ Game.prototype.render = function () {
     c.fillStyle = "#000000";
     c.fillRect(inv.x + 4, inv.y + 4, 4, 4);
     c.fillRect(inv.x + inv.w - 8, inv.y + 4, 4, 4);
+  }
+
+  if (this.ufo) {
+    var u = this.ufo;
+    c.fillStyle = "#ff7f7f";
+    c.fillRect(u.x, u.y + 4, u.w, u.h - 4);
+    c.fillRect(u.x + 7, u.y, 10, 4);
+    c.fillStyle = "#ffffff";
+    c.fillRect(u.x + 3, u.y + 6, 2, 2);
+    c.fillRect(u.x + u.w - 5, u.y + 6, 2, 2);
   }
 
   var p = this.player;
