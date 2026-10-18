@@ -18,7 +18,7 @@ var canvas = document.getElementById("game");
 var W = canvas.width;
 var H = canvas.height;
 
-var VERSION = "1.4.3";
+var VERSION = "1.4.4";
 
 var COLS = 11;
 var ROWS = 5;
@@ -289,7 +289,7 @@ Game.prototype.update = function (dt) {
   p.x = Math.max(MARGIN, Math.min(W - MARGIN - p.w, p.x));
 
   this.fireCooldown -= dt;
-  if ((this.input.fire || this.input.touchTarget !== null) && this.playerBullet === null && this.fireCooldown <= 0) {
+  if (this.playerBullet === null && this.fireCooldown <= 0) {
     this.playerBullet = { x: p.x + p.w / 2 - 1, y: p.y, w: 2, h: 8, vy: -420 };
     this.fireCooldown = 0.35;
     playFire();
