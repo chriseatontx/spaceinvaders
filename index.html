@@ -18,7 +18,7 @@ var canvas = document.getElementById("game");
 var W = canvas.width;
 var H = canvas.height;
 
-var VERSION = "1.4.1";
+var VERSION = "1.4.2";
 
 var COLS = 11;
 var ROWS = 5;
@@ -281,6 +281,11 @@ Game.prototype.update = function (dt) {
   p.invuln = Math.max(0, p.invuln - dt);
   if (this.input.left) p.x -= p.speed * dt;
   if (this.input.right) p.x += p.speed * dt;
+  if (this.input.touchTarget !== null) {
+    var tcx = p.x + p.w / 2;
+    if (this.input.touchTarget < tcx - 2) p.x -= p.speed * dt;
+    else if (this.input.touchTarget > tcx + 2) p.x += p.speed * dt;
+  }
   p.x = Math.max(MARGIN, Math.min(W - MARGIN - p.w, p.x));
 
   this.fireCooldown -= dt;
@@ -325,8 +330,11 @@ Game.prototype.update = function (dt) {
 
   this.enemyFireTimer -= dt;
   if (this.enemyFireTimer <= 0 && this.enemyBullets.length < 3 && this.alive > 0) {
-    var shooter = this.invaders[Math.floor(Math.random() * this.invaders.length)];
-    if (shooter.alive) {
+    var shooter = null;
+    for (var si = 0; si < this.invaders.length; si++) {
+      if (this.invaders[si].alive) { shooter = this.invaders[si]; break; }
+    }
+    if (shooter) {
       this.enemyBullets.push({ x: shooter.x + shooter.w / 2 - 1, y: shooter.y + shooter.h, w: 3, h: 8, vy: 170 + this.wave * 20 });
     }
     var rate = Math.max(0.25, 0.9 - this.wave * 0.08) * (0.5 + Math.random());
@@ -520,6 +528,31 @@ window.addEventListener("keyup", function (e) {
   else if (k === " ") game.input.fire = false;
   else if (k === "Enter") game.input.enter = false;
 });
+
+game.input.touchTarget = null;
+var touchDown = false;
+canvas.addEventListener("pointerdown", function (e) {
+  var rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  touchDown = true;
+  game.input.touchTarget = (e.clientX - rect.left) * (W / rect.width);
+  if (game.state === "title" || game.state === "gameover") game.input.enter = true;
+  else game.input.fire = true;
+});
+canvas.addEventListener("pointermove", function (e) {
+  if (!touchDown) return;
+  var rect = canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+  game.input.touchTarget = (e.clientX - rect.left) * (W / rect.width);
+});
+function endTouch() {
+  touchDown = false;
+  game.input.touchTarget = null;
+  game.input.fire = false;
+  game.input.enter = false;
+}
+canvas.addEventListener("pointerup", endTouch);
+canvas.addEventListener("pointercancel", endTouch);
 
 var lastTime = performance.now();
 function frame() {
