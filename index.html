@@ -18,7 +18,7 @@ var canvas = document.getElementById("game");
 var W = canvas.width;
 var H = canvas.height;
 
-var VERSION = "1.4.6";
+var VERSION = "1.4.7";
 
 var COLS = 11;
 var ROWS = 5;
@@ -413,6 +413,8 @@ Game.prototype.update = function (dt) {
   if (this.alive <= 0) {
     this.state = "waveTransition";
     this.transitionTimer = 2;
+    this.playerBullet = null;
+    this.enemyBullets = [];
   }
 };
 

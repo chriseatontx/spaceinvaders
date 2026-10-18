@@ -42,12 +42,13 @@ Modifier-key combinations (e.g. Alt+Arrow) are left to the browser and never dri
 
 ## Version
 
-Current version: **1.4.6** (defined as `var VERSION` in `index.html` and shown on the title and game-over screens).
+Current version: **1.4.7** (defined as `var VERSION` in `index.html` and shown on the title and game-over screens).
 
 ## Changelog
 
 | Version | Release |
 | --- | --- |
+| 1.4.7 | Clearing the player and enemy bullets when a wave ends, so stale bullets no longer hang motionless through the "WAVE N INCOMING" beat and resume flight (and can strike) on the next wave |
 | 1.4.6 | Enemy firing interval no longer shrinks as invaders are destroyed (the inverted `alive / total` multiplier was removed); cadence now depends only on the wave, with the 3-bullet cap as the throttle |
 | 1.4.5 | Title-screen help text corrected (`Fire: Automatic`, `Move: ... / Touch`); removed the now-unused `fire` input state |
 | 1.4.4 | Always-on automatic firing on all devices (no Space key or fire button) |
