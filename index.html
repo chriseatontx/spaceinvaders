@@ -18,6 +18,8 @@ var canvas = document.getElementById("game");
 var W = canvas.width;
 var H = canvas.height;
 
+var VERSION = "1.4.0";
+
 var COLS = 11;
 var ROWS = 5;
 var CELL_W = 32;
@@ -417,6 +419,7 @@ Game.prototype.render = function () {
     this.text(c, "Press ENTER to Start", W / 2, 300, "20px monospace", "#ffffff");
     this.text(c, "Move: Arrows / A-D   Fire: Space", W / 2, 360, "16px monospace", "#9a9a9a");
     this.text(c, "M: Mute", W / 2, 400, "16px monospace", "#9a9a9a");
+    this.text(c, "v" + VERSION, W / 2, 440, "16px monospace", "#9a9a9a");
     return;
   }
   if (this.state === "gameover") {
@@ -424,6 +427,7 @@ Game.prototype.render = function () {
     this.text(c, "HI-SCORE: " + this.hiScore, W / 2, 260, "20px monospace", "#d8ff4f");
     this.text(c, "Score: " + this.score, W / 2, 300, "20px monospace", "#ffffff");
     this.text(c, "Press ENTER to Restart", W / 2, 360, "20px monospace", "#9a9a9a");
+    this.text(c, "v" + VERSION, W / 2, 420, "16px monospace", "#9a9a9a");
     return;
   }
 
