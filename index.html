@@ -250,6 +250,13 @@ Game.prototype.gameOver = function () {
   playGameOver();
 };
 
+Game.prototype.recordHiScore = function () {
+  if (this.score > this.hiScore) {
+    this.hiScore = this.score;
+    saveHiScore(this.hiScore);
+  }
+};
+
 Game.prototype.update = function (dt) {
   if (this.state === "title" || this.state === "gameover") {
     if (this.input.enter) {
@@ -354,6 +361,7 @@ Game.prototype.update = function (dt) {
     else if (this.hitShield(b)) { this.playerBullet = null; }
     else if (this.ufo && this.overlap(b, this.ufo)) {
       this.score += this.ufo.points;
+      this.recordHiScore();
       stopUfoSound();
       playUfoHit();
       this.ufo = null;
@@ -366,6 +374,7 @@ Game.prototype.update = function (dt) {
           inv.alive = false;
           this.alive--;
           this.score += ROW_POINTS[inv.row];
+          this.recordHiScore();
           playExplosion();
           this.playerBullet = null;
           break;
@@ -495,6 +504,7 @@ var game = new Game(canvas);
 initAudio();
 
 window.addEventListener("keydown", function (e) {
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
   var k = e.key;
   if (k === "ArrowLeft" || k === "a" || k === "A") game.input.left = true;
   else if (k === "ArrowRight" || k === "d" || k === "D") game.input.right = true;
@@ -503,6 +513,7 @@ window.addEventListener("keydown", function (e) {
   else if ((k === "m" || k === "M") && !e.repeat) toggleMute();
 });
 window.addEventListener("keyup", function (e) {
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
   var k = e.key;
   if (k === "ArrowLeft" || k === "a" || k === "A") game.input.left = false;
   else if (k === "ArrowRight" || k === "d" || k === "D") game.input.right = false;
