@@ -18,7 +18,7 @@ var canvas = document.getElementById("game");
 var W = canvas.width;
 var H = canvas.height;
 
-var VERSION = "1.4.5";
+var VERSION = "1.4.6";
 
 var COLS = 11;
 var ROWS = 5;
@@ -339,7 +339,7 @@ Game.prototype.update = function (dt) {
       this.enemyBullets.push({ x: shooter.x + shooter.w / 2 - 1, y: shooter.y + shooter.h, w: 3, h: 8, vy: 170 + this.wave * 20 });
     }
     var rate = Math.max(0.25, 0.9 - this.wave * 0.08) * (0.5 + Math.random());
-    this.enemyFireTimer = rate * this.alive / this.total;
+    this.enemyFireTimer = rate;
   }
 
   var j, eb;

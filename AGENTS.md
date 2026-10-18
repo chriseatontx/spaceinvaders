@@ -38,7 +38,7 @@ A single-file browser clone of Space Invaders. The entire game — HTML, CSS, an
 
 - 55 invaders: `COLS = 11`, `ROWS = 5`; row points `[30, 20, 20, 10, 10]`; formation drops `DROP = 12` px at margins (`MARGIN = 16`).
 - March speed: `(40 + wave * 12) * (1 + 1.4 * killed / total)` (`marchSpeed`).
-- Firing is automatic during play: one player bullet at a time; fire cooldown `0.35` s; max 3 enemy bullets on screen; enemy bullet speed `170 + wave * 20`.
+- Firing is automatic during play: one player bullet at a time; fire cooldown `0.35` s; max 3 enemy bullets on screen; enemy bullet speed `170 + wave * 20`. The enemy firing interval depends only on the wave (`Math.max(0.25, 0.9 - wave * 0.08) * (0.5 + Math.random())`) and is deliberately **not** scaled by how many invaders remain — the 3-bullet cap is the throttle (fixed in v1.4.6; the earlier `* alive / total` multiplier was inverted and pinned three bullets in flight for the last third of every wave).
 - Enemy shooter selection builds an `aliveList` of alive invaders and picks one at random (with an empty-list guard).
 - UFO: spawns off the left edge (`x: -UFO_W`, `dir: 1`, always rightward), flies at `y = 36`, speed 90, despawns when `x > W`; points randomly from `[100, 200, 300]`.
 - Shields: 4 shields of 8×4 cells (8 px cells) at `y = H - 130`, rebuilt fresh every wave (`buildShields` is called from `spawnWave`).

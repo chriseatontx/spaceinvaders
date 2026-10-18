@@ -34,7 +34,7 @@ Modifier-key combinations (e.g. Alt+Arrow) are left to the browser and never dri
 
 - A formation of 55 invaders (5 rows × 11 columns) marches side to side and drops one step when it hits an edge.
 - The formation marches faster as more invaders are destroyed, and each new wave starts faster and lower.
-- Your ship fires automatically (one bullet at a time, 0.35 s cooldown); invaders return fire and a hit costs you a life (brief invulnerability blink after respawn).
+- Your ship fires automatically (one bullet at a time, 0.35 s cooldown); invaders return fire at a cadence that depends only on the wave (max 3 enemy bullets on screen), and a hit costs you a life (brief invulnerability blink after respawn).
 - Four destructible shields protect you from both sides' fire; invaders chew through them too.
 - Points by row: top rows are worth 30/20/20/10/10. Clearing a wave advances to the next one.
 - The high score persists live in `localStorage` as soon as you beat it, so it survives a reload mid-game.
@@ -42,12 +42,13 @@ Modifier-key combinations (e.g. Alt+Arrow) are left to the browser and never dri
 
 ## Version
 
-Current version: **1.4.5** (defined as `var VERSION` in `index.html` and shown on the title and game-over screens).
+Current version: **1.4.6** (defined as `var VERSION` in `index.html` and shown on the title and game-over screens).
 
 ## Changelog
 
 | Version | Release |
 | --- | --- |
+| 1.4.6 | Enemy firing interval no longer shrinks as invaders are destroyed (the inverted `alive / total` multiplier was removed); cadence now depends only on the wave, with the 3-bullet cap as the throttle |
 | 1.4.5 | Title-screen help text corrected (`Fire: Automatic`, `Move: ... / Touch`); removed the now-unused `fire` input state |
 | 1.4.4 | Always-on automatic firing on all devices (no Space key or fire button) |
 | 1.4.3 | Random enemy shooter selection (no top-left bias), mouse-pointer guard on touch handlers, touch auto-fire |
