@@ -1,6 +1,6 @@
 # Space Invaders
 
-A single-file browser clone of Space Invaders. Everything lives in `index.html` — no build step, no dependencies, no network calls.
+A browser Space Invaders cabinet in its first progression state. The original arcade game remains the center of the experience, framed by a responsive service-cabinet interface. Everything still lives in `index.html` — no build step, no dependencies, no network calls.
 
 ## Play it online
 
@@ -23,9 +23,10 @@ python3 -m http.server 8000   # then visit http://localhost:8000/index.html
 
 | Action | Input |
 | --- | --- |
+| Add a quarter | `ADD QUARTER` cabinet button |
 | Move ship | `←` / `→` or `A` / `D`, or drag on touch screens |
 | Fire | Automatic (no key or button needed) |
-| Start / restart | `Enter`, or tap on touch screens |
+| Start / restart | `Enter`, or tap on touch screens, after adding a quarter |
 | Mute | `M` |
 
 Modifier-key combinations (e.g. Alt+Arrow) are left to the browser and never drive gameplay. Mouse clicks on the canvas are ignored; touch/pen controls only activate on touch input.
@@ -37,17 +38,21 @@ Modifier-key combinations (e.g. Alt+Arrow) are left to the browser and never dri
 - Your ship fires automatically (one bullet at a time, 0.35 s cooldown); invaders return fire at a cadence that depends only on the wave (max 3 enemy bullets on screen), and a hit costs you a life (brief invulnerability blink after respawn).
 - Four destructible shields protect you from both sides' fire; invaders chew through them too.
 - Points by row: top rows are worth 30/20/20/10/10. Clearing a wave advances to the next one.
+- A quarter adds one cabinet play. Starting a manual run consumes one play; quarters are separate from score currency.
+- Every invader/UFO point award also grants the same number of persistent **Score Credits**. Score and high score are never spent.
+- Once 120 Score Credits are available, the service panel quietly reveals **Fire Control**. Buying it spends 120 credits and makes automatic fire 20% faster.
 - The high score persists live in `localStorage` as soon as you beat it, so it survives a reload mid-game.
-- Game over when you run out of lives or the invaders reach your line. Press `Enter` (or tap) to restart.
+- Game over when you run out of lives or the invaders reach your line. Add a quarter if needed, then press `Enter` (or tap) to restart.
 
 ## Version
 
-Current version: **1.4.7** (defined as `var VERSION` in `index.html` and shown on the title and game-over screens).
+Current version: **1.5.0** (defined as `var VERSION` in `index.html` and shown on the title and game-over screens).
 
 ## Changelog
 
 | Version | Release |
 | --- | --- |
+| 1.5.0 | Initial cabinet presentation: arcade artwork/service panel, add-quarter cabinet plays, score-derived persistent credits, Fire Control first upgrade, and cabinet coin/service sounds |
 | 1.4.7 | Clearing the player and enemy bullets when a wave ends, so stale bullets no longer hang motionless through the "WAVE N INCOMING" beat and resume flight (and can strike) on the next wave |
 | 1.4.6 | Enemy firing interval no longer shrinks as invaders are destroyed (the inverted `alive / total` multiplier was removed); cadence now depends only on the wave, with the 3-bullet cap as the throttle |
 | 1.4.5 | Title-screen help text corrected (`Fire: Automatic`, `Move: ... / Touch`); removed the now-unused `fire` input state |

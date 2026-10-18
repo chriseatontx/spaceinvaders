@@ -2,23 +2,92 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Space Invaders</title>
+<title>SPACE INVADERS // SERVICE CABINET</title>
 <style>
-  html, body { margin: 0; padding: 0; background: #000; }
-  canvas { display: block; margin: auto; }
-  #game { width: min(800px, 100vw); height: auto; aspect-ratio: 4 / 3; }
+  :root { color-scheme: dark; --electric: #58eeff; --acid: #dcff69; --dim: #8fb4c1; }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; margin: 0; background: radial-gradient(circle at 50% 0, #17303e 0, #070d13 43%, #020507 100%); }
+  body { color: #e9fbff; font-family: "Courier New", Consolas, monospace; }
+  button { font: inherit; }
+  .cabinet-shell { width: min(1180px, 100%); min-height: 100vh; margin: 0 auto; padding: clamp(10px, 2vw, 26px); display: grid; align-content: center; gap: 12px; }
+  .marquee { position: relative; overflow: hidden; padding: 14px 22px 12px; border: 3px solid var(--electric); border-radius: 14px 14px 5px 5px; background: linear-gradient(135deg, #163846, #0a1721 46%, #211240); box-shadow: 0 0 0 5px #061018, 0 0 34px rgba(88,238,255,.32), inset 0 0 28px rgba(88,238,255,.12); text-align: center; letter-spacing: clamp(4px, 1.1vw, 12px); font-weight: bold; font-size: clamp(21px, 4.5vw, 48px); color: var(--electric); text-shadow: 0 0 8px var(--electric), 0 0 24px #5c53ff; }
+  .marquee::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.04) 3px 4px); }
+  .marquee small { display: block; margin-top: 4px; color: var(--acid); font-size: .23em; letter-spacing: .65em; text-shadow: 0 0 8px var(--acid); }
+  .cabinet-body { display: grid; grid-template-columns: minmax(0, 1fr) 254px; gap: 14px; align-items: stretch; }
+  .screen-bezel { position: relative; min-width: 0; padding: clamp(10px, 1.6vw, 18px); border: 4px solid #285164; border-radius: 16px 16px 28px 28px; background: linear-gradient(135deg, #0a151c, #172d39 50%, #061018); box-shadow: inset 0 0 0 3px #030607, inset 0 0 32px #000, 0 16px 38px rgba(0,0,0,.48); }
+  .screen-bezel::before { content: "PLAYER TERMINAL // CABINET 07"; display: block; margin: 0 0 8px 4px; color: #6f9dac; font-size: 11px; letter-spacing: 1px; }
+  .screen-bezel::after { content: ""; position: absolute; inset: 26px clamp(10px, 1.6vw, 18px) clamp(10px, 1.6vw, 18px); border-radius: 3%; pointer-events: none; box-shadow: inset 0 0 45px rgba(0,0,0,.7), inset 0 0 15px rgba(82,231,255,.16); }
+  #game { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; background: #000; image-rendering: pixelated; }
+  .service-panel { display: flex; flex-direction: column; gap: 11px; padding: 15px; border: 3px solid #315a67; border-radius: 8px 8px 18px 18px; background: linear-gradient(160deg, #1a3440, #0c1a22 42%, #081016); box-shadow: inset 0 0 24px rgba(88,238,255,.08), 0 16px 34px rgba(0,0,0,.4); }
+  .panel-label { color: var(--dim); font-size: 10px; letter-spacing: 1.5px; }
+  .credit-readout { padding: 10px; border: 1px solid #436a70; background: #020806; color: var(--acid); text-align: center; font-size: 18px; font-weight: bold; text-shadow: 0 0 8px var(--acid); box-shadow: inset 0 0 16px rgba(147,255,106,.1); }
+  .credit-readout span { display: block; margin-top: 3px; color: #79af84; font-size: 9px; letter-spacing: 1px; text-shadow: none; }
+  .cabinet-button { cursor: pointer; padding: 12px 9px; border: 2px solid #d18a2e; border-radius: 6px; background: linear-gradient(#ffbd52, #ab551c); color: #190e05; font-weight: bold; font-size: 13px; letter-spacing: .6px; box-shadow: 0 4px 0 #563009, 0 0 14px rgba(255,185,69,.32); transition: transform .12s, filter .12s; }
+  .cabinet-button:hover, .cabinet-button:focus-visible { filter: brightness(1.14); outline: 2px solid #fff; outline-offset: 2px; }
+  .cabinet-button:active { transform: translateY(3px); box-shadow: 0 1px 0 #563009; }
+  .coin-slot { position: relative; height: 38px; margin-top: 2px; border: 2px solid #3c6068; border-radius: 5px; background: #071016; }
+  .coin-slot::before { content: ""; position: absolute; top: 8px; left: 50%; width: 70px; height: 12px; transform: translateX(-50%); border: 2px solid #071016; border-radius: 8px; background: linear-gradient(#7f9ea1, #27383b); box-shadow: inset 0 2px 3px #000; }
+  .coin-slot::after { content: "INSERT QUARTER"; position: absolute; bottom: 3px; width: 100%; color: #79a4ad; text-align: center; font-size: 8px; letter-spacing: 1px; }
+  .service-divider { height: 1px; background: #42616a; box-shadow: 0 1px #000; }
+  .score-credit { display: grid; gap: 3px; padding: 9px; border: 1px solid #365864; background: rgba(0,0,0,.26); color: var(--electric); text-align: center; font-weight: bold; }
+  .score-credit small { color: var(--dim); font-size: 9px; letter-spacing: 1px; }
+  .upgrade-card { padding: 10px; border: 1px solid #a7d95b; background: linear-gradient(135deg, rgba(115,161,58,.23), rgba(3,11,7,.76)); animation: service-pulse 1.7s ease-in-out infinite; }
+  .upgrade-card[hidden] { display: none; }
+  .upgrade-card h2 { margin: 0 0 4px; color: var(--acid); font-size: 14px; }
+  .upgrade-card p { margin: 0 0 9px; color: #b6d1bd; font-size: 11px; line-height: 1.35; }
+  .upgrade-card button { width: 100%; cursor: pointer; padding: 8px; border: 1px solid var(--acid); background: #1d3a1b; color: #efffd3; font-weight: bold; }
+  .upgrade-card button:disabled { cursor: default; border-color: #55704d; background: #1a2117; color: #849076; }
+  .status-light { width: 10px; height: 10px; display: inline-block; margin-right: 6px; border-radius: 50%; background: #ffbd52; box-shadow: 0 0 8px #ffbd52; vertical-align: -1px; }
+  .status-line { min-height: 31px; color: #a8c3cc; font-size: 10px; line-height: 1.35; }
+  .footer-strip { display: flex; justify-content: space-between; gap: 12px; padding: 7px 13px; border: 2px solid #294b58; border-radius: 3px 3px 12px 12px; background: #08131a; color: #6c99a6; font-size: 10px; letter-spacing: 1px; }
+  @keyframes service-pulse { 50% { border-color: #efff96; box-shadow: 0 0 13px rgba(220,255,105,.38); } }
+  @media (max-width: 780px) { .cabinet-body { grid-template-columns: 1fr; } .service-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } .panel-label, .coin-slot, .service-divider, .status-line { grid-column: 1 / -1; } .upgrade-card { grid-column: 1 / -1; } }
+  @media (max-width: 440px) { .cabinet-shell { padding: 6px; gap: 7px; } .marquee { border-radius: 8px; padding: 10px 8px; } .screen-bezel { padding: 7px; border-width: 2px; border-radius: 8px; } .screen-bezel::before { margin-bottom: 4px; font-size: 8px; } .screen-bezel::after { inset: 19px 7px 7px; } .service-panel { gap: 7px; padding: 9px; } .footer-strip { font-size: 8px; } }
 </style>
 </head>
 <body>
-<canvas id="game" width="800" height="600"></canvas>
+<main class="cabinet-shell" aria-label="Space Invaders arcade cabinet">
+  <header class="marquee">SPACE INVADERS<small>ARCADE SYSTEM // 198X</small></header>
+  <section class="cabinet-body">
+    <div class="screen-bezel"><canvas id="game" width="800" height="600" aria-label="Space Invaders game screen"></canvas></div>
+    <aside class="service-panel" aria-label="Cabinet service panel">
+      <div class="panel-label">COIN MECH // ONLINE</div>
+      <div class="credit-readout" id="cabinet-plays">CREDIT 00<span>QUARTERS READY</span></div>
+      <button class="cabinet-button" id="add-quarter" type="button">ADD QUARTER</button>
+      <div class="coin-slot" aria-hidden="true"></div>
+      <div class="service-divider"></div>
+      <div class="score-credit"><small>SCORE CREDITS</small><span id="score-credits">000000</span></div>
+      <section class="upgrade-card" id="fire-control-card" hidden aria-live="polite">
+        <h2>FIRE CONTROL</h2>
+        <p>Cycle timing stabilized. Fire 20% faster.</p>
+        <button id="buy-fire-control" type="button">INSTALL // 120 CR</button>
+      </section>
+      <div class="status-line" id="cabinet-status"><span class="status-light"></span>INSERT A QUARTER TO START</div>
+    </aside>
+  </section>
+  <footer class="footer-strip"><span>MOVE: ARROWS / A-D / TOUCH</span><span>FIRE: AUTOMATIC</span><span>M: SOUND</span></footer>
+</main>
 <script>
 "use strict";
 
 var canvas = document.getElementById("game");
 var W = canvas.width;
 var H = canvas.height;
+var cabinetPlaysNode = document.getElementById("cabinet-plays");
+var scoreCreditsNode = document.getElementById("score-credits");
+var cabinetStatusNode = document.getElementById("cabinet-status");
+var addQuarterButton = document.getElementById("add-quarter");
+var fireControlCard = document.getElementById("fire-control-card");
+var buyFireControlButton = document.getElementById("buy-fire-control");
 
-var VERSION = "1.4.7";
+var VERSION = "1.5.0";
+
+var CABINET_CONFIG = {
+  quarterCost: 1,
+  scoreCreditRate: 1,
+  fireControl: { id: "fire_control_1", cost: 120, cooldownMultiplier: 0.8 },
+  storage: { plays: "si-cabinet-plays", scoreCredits: "si-score-credits", fireControl: "si-fire-control-1" }
+};
 
 var COLS = 11;
 var ROWS = 5;
@@ -47,6 +116,12 @@ function initAudio() {
     if (Ctor) audioCtx = new Ctor();
   } catch (e) {
     audioCtx = null;
+  }
+}
+
+function wakeAudio() {
+  if (audioCtx && audioCtx.state === "suspended") {
+    try { audioCtx.resume(); } catch (e) {}
   }
 }
 
@@ -85,6 +160,19 @@ function playNote(freq, delay, dur, type, vol, freqEnd) {
 
 function playFire() {
   playNote(900, 0, 0.08, "square", 0.08, 300);
+}
+
+function playQuarter() {
+  if (!audioCtx || muted) return;
+  playNote(950, 0, 0.05, "square", 0.1, 1200);
+  playNote(1600, 0.06, 0.06, "square", 0.07, 1700);
+}
+
+function playServiceInstall() {
+  if (!audioCtx || muted) return;
+  playNote(330, 0, 0.08, "square", 0.08, null);
+  playNote(660, 0.09, 0.08, "square", 0.08, null);
+  playNote(990, 0.18, 0.14, "square", 0.08, null);
 }
 
 function playExplosion() {
@@ -167,13 +255,39 @@ function saveHiScore(v) {
   } catch (e) {}
 }
 
+function loadInteger(key) {
+  try {
+    var value = Number(localStorage.getItem(key));
+    return Number.isInteger(value) && value >= 0 ? value : 0;
+  } catch (e) {
+    return 0;
+  }
+}
+
+function saveInteger(key, value) {
+  try { localStorage.setItem(key, String(value)); } catch (e) {}
+}
+
+function loadBoolean(key) {
+  try { return localStorage.getItem(key) === "1"; } catch (e) { return false; }
+}
+
+function saveBoolean(key, value) {
+  try { localStorage.setItem(key, value ? "1" : "0"); } catch (e) {}
+}
+
 function Game(cv) {
   this.ctx = cv.getContext("2d");
   this.state = "title";
   this.input = { left: false, right: false, enter: false };
   this.hiScore = loadHiScore();
+  this.cabinetPlays = loadInteger(CABINET_CONFIG.storage.plays);
+  this.scoreCredits = loadInteger(CABINET_CONFIG.storage.scoreCredits);
+  this.fireControlOwned = loadBoolean(CABINET_CONFIG.storage.fireControl);
+  this.notice = "INSERT A QUARTER TO START";
   this.reset();
   this.state = "title";
+  this.syncCabinetUi();
 }
 
 Game.prototype.reset = function () {
@@ -191,6 +305,74 @@ Game.prototype.reset = function () {
   this.ufoTimer = 15 + Math.random() * 10;
   stopUfoSound();
   this.spawnWave();
+};
+
+Game.prototype.addQuarter = function () {
+  this.cabinetPlays++;
+  saveInteger(CABINET_CONFIG.storage.plays, this.cabinetPlays);
+  this.notice = "QUARTER ACCEPTED // PRESS ENTER";
+  wakeAudio();
+  playQuarter();
+  this.syncCabinetUi();
+};
+
+Game.prototype.startFromCredit = function () {
+  if (this.cabinetPlays < CABINET_CONFIG.quarterCost) {
+    this.notice = "INSERT A QUARTER TO START";
+    this.syncCabinetUi();
+    return false;
+  }
+  this.cabinetPlays -= CABINET_CONFIG.quarterCost;
+  saveInteger(CABINET_CONFIG.storage.plays, this.cabinetPlays);
+  this.notice = "RUN ACTIVE // SCORE BECOMES CREDITS";
+  this.reset();
+  wakeAudio();
+  playWaveJingle();
+  this.syncCabinetUi();
+  return true;
+};
+
+Game.prototype.awardScore = function (points) {
+  var credits = Math.floor(points * CABINET_CONFIG.scoreCreditRate);
+  this.score += points;
+  this.scoreCredits += credits;
+  saveInteger(CABINET_CONFIG.storage.scoreCredits, this.scoreCredits);
+  this.recordHiScore();
+  this.syncCabinetUi();
+};
+
+Game.prototype.buyFireControl = function () {
+  var upgrade = CABINET_CONFIG.fireControl;
+  if (this.fireControlOwned || this.scoreCredits < upgrade.cost) return false;
+  this.scoreCredits -= upgrade.cost;
+  this.fireControlOwned = true;
+  saveInteger(CABINET_CONFIG.storage.scoreCredits, this.scoreCredits);
+  saveBoolean(CABINET_CONFIG.storage.fireControl, true);
+  this.notice = "FIRE CONTROL INSTALLED // +20% RATE";
+  wakeAudio();
+  playServiceInstall();
+  this.syncCabinetUi();
+  return true;
+};
+
+Game.prototype.currentFireCooldown = function () {
+  return 0.35 * (this.fireControlOwned ? CABINET_CONFIG.fireControl.cooldownMultiplier : 1);
+};
+
+Game.prototype.syncCabinetUi = function () {
+  var upgrade = CABINET_CONFIG.fireControl;
+  cabinetPlaysNode.firstChild.nodeValue = "CREDIT " + ("0" + this.cabinetPlays).slice(-2);
+  scoreCreditsNode.textContent = ("000000" + this.scoreCredits).slice(-6);
+  if (this.fireControlOwned) {
+    fireControlCard.hidden = false;
+    buyFireControlButton.disabled = true;
+    buyFireControlButton.textContent = "INSTALLED // 20% FASTER";
+  } else {
+    fireControlCard.hidden = this.scoreCredits < upgrade.cost;
+    buyFireControlButton.disabled = this.scoreCredits < upgrade.cost;
+    buyFireControlButton.textContent = "INSTALL // " + upgrade.cost + " CR";
+  }
+  cabinetStatusNode.innerHTML = '<span class="status-light"></span>' + this.notice;
 };
 
 Game.prototype.spawnWave = function () {
@@ -248,6 +430,8 @@ Game.prototype.gameOver = function () {
   saveHiScore(this.hiScore);
   stopUfoSound();
   playGameOver();
+  this.notice = "RUN ENDED // ADD QUARTER TO PLAY AGAIN";
+  this.syncCabinetUi();
 };
 
 Game.prototype.recordHiScore = function () {
@@ -261,8 +445,7 @@ Game.prototype.update = function (dt) {
   if (this.state === "title" || this.state === "gameover") {
     if (this.input.enter) {
       this.input.enter = false;
-      this.reset();
-      playWaveJingle();
+      this.startFromCredit();
     }
     return;
   }
@@ -291,7 +474,7 @@ Game.prototype.update = function (dt) {
   this.fireCooldown -= dt;
   if (this.playerBullet === null && this.fireCooldown <= 0) {
     this.playerBullet = { x: p.x + p.w / 2 - 1, y: p.y, w: 2, h: 8, vy: -420 };
-    this.fireCooldown = 0.35;
+    this.fireCooldown = this.currentFireCooldown();
     playFire();
   }
 
@@ -369,8 +552,7 @@ Game.prototype.update = function (dt) {
     if (b.y + b.h < 0) { this.playerBullet = null; }
     else if (this.hitShield(b)) { this.playerBullet = null; }
     else if (this.ufo && this.overlap(b, this.ufo)) {
-      this.score += this.ufo.points;
-      this.recordHiScore();
+      this.awardScore(this.ufo.points);
       stopUfoSound();
       playUfoHit();
       this.ufo = null;
@@ -382,8 +564,7 @@ Game.prototype.update = function (dt) {
         if (inv.alive && this.overlap(b, inv)) {
           inv.alive = false;
           this.alive--;
-          this.score += ROW_POINTS[inv.row];
-          this.recordHiScore();
+          this.awardScore(ROW_POINTS[inv.row]);
           playExplosion();
           this.playerBullet = null;
           break;
@@ -436,7 +617,8 @@ Game.prototype.render = function () {
   if (this.state === "title") {
     this.text(c, "SPACE INVADERS", W / 2, 200, "48px monospace", "#4fd8ff");
     this.text(c, "HI-SCORE: " + this.hiScore, W / 2, 250, "20px monospace", "#d8ff4f");
-    this.text(c, "Press ENTER to Start", W / 2, 300, "20px monospace", "#ffffff");
+    this.text(c, this.cabinetPlays ? "PRESS ENTER TO START" : "ADD QUARTER TO START", W / 2, 300, "20px monospace", "#ffffff");
+    this.text(c, "CABINET CREDIT: " + this.cabinetPlays, W / 2, 330, "16px monospace", "#ffbe58");
     this.text(c, "Move: Arrows / A-D / Touch", W / 2, 360, "16px monospace", "#9a9a9a");
     this.text(c, "Fire: Automatic", W / 2, 400, "16px monospace", "#9a9a9a");
     this.text(c, "M: Mute", W / 2, 440, "16px monospace", "#9a9a9a");
@@ -447,7 +629,7 @@ Game.prototype.render = function () {
     this.text(c, "GAME OVER", W / 2, 220, "48px monospace", "#ff4f4f");
     this.text(c, "HI-SCORE: " + this.hiScore, W / 2, 260, "20px monospace", "#d8ff4f");
     this.text(c, "Score: " + this.score, W / 2, 300, "20px monospace", "#ffffff");
-    this.text(c, "Press ENTER to Restart", W / 2, 360, "20px monospace", "#9a9a9a");
+    this.text(c, this.cabinetPlays ? "PRESS ENTER TO RESTART" : "ADD QUARTER TO RESTART", W / 2, 360, "20px monospace", "#9a9a9a");
     this.text(c, "v" + VERSION, W / 2, 420, "16px monospace", "#9a9a9a");
     return;
   }
@@ -493,6 +675,7 @@ Game.prototype.render = function () {
   }
 
   this.text(c, "SCORE " + this.score, 12, 20, "16px monospace", "#ffffff", "left");
+  this.text(c, "CR " + this.scoreCredits, W / 2, 20, "14px monospace", "#58eeff");
   this.text(c, "WAVE " + this.wave, W - 12, 20, "16px monospace", "#9a9a9a", "right");
   for (i = 0; i < this.lives; i++) {
     c.fillStyle = "#d8ff4f";
@@ -515,8 +698,16 @@ Game.prototype.text = function (c, str, x, y, font, color, align) {
 var game = new Game(canvas);
 initAudio();
 
+addQuarterButton.addEventListener("click", function () {
+  game.addQuarter();
+});
+buyFireControlButton.addEventListener("click", function () {
+  game.buyFireControl();
+});
+
 window.addEventListener("keydown", function (e) {
   if (e.ctrlKey || e.altKey || e.metaKey) return;
+  wakeAudio();
   var k = e.key;
   if (k === "ArrowLeft" || k === "a" || k === "A") game.input.left = true;
   else if (k === "ArrowRight" || k === "d" || k === "D") game.input.right = true;
@@ -535,6 +726,7 @@ game.input.touchTarget = null;
 var touchDown = false;
 canvas.addEventListener("pointerdown", function (e) {
   if (e.pointerType === "mouse") return;
+  wakeAudio();
   var rect = canvas.getBoundingClientRect();
   if (!rect.width || !rect.height) return;
   touchDown = true;

@@ -1,74 +1,193 @@
-# AGENTS.md — guidance for agents working on this repo
+# AGENTS.md — Working Agreement for Space Invaders
 
-Everything here is grounded in the files actually present (`README.md`, `index.html`) and the git history. Do not assume tooling that isn't in the repo.
+This repository is evolving from a single-file Space Invaders clone into a narrative incremental game with three phases: manual arcade cabinet, AI-controlled cabinet, and simulated mainframe terminal.
 
-## What this project is
+Read [NarrativeandPlan.md](NarrativeandPlan.md) before planning or implementing product work. It is the source of truth for player promises, terminology, narrative continuity, phase transitions, target architecture, roadmap, and global acceptance criteria. Use [TASKS.md](TASKS.md) for the current execution order and status.
 
-A single-file browser clone of Space Invaders. The entire game — HTML, CSS, and JavaScript — lives in `index.html`. There is no build step, no package manifest, no dependencies, and no runtime network calls (only browser APIs: Canvas 2D, Web Audio, `localStorage`, `requestAnimationFrame`).
+## Current reality
 
-## Layout
+At the time this guidance was written, the game is v1.5.0 and remains entirely in `index.html`:
 
-- `index.html` — the whole game: a `<canvas id="game" width="800" height="600">` plus one inline `<script>` ("use strict"). Structure inside the script, in order:
-  1. Layout/game constants (`COLS`, `ROWS`, `CELL_W`, `ROW_POINTS`, `UFO_*`, etc.) at the top.
-  2. Web Audio helpers (`initAudio`, `playNote`, `playFire`/`playExplosion`/`playDeath`/`playUfoSpawn`/`playUfoHit`/`playWaveJingle`/`playGameOver`, and the looping UFO drone `startUfoSound`/`updateUfoSound`/`stopUfoSound`).
-  3. Hi-score persistence (`loadHiScore`/`saveHiScore`/`recordHiScore`, `localStorage` key `si-hiscore`).
-  4. `Game` constructor + `Game.prototype.*` methods: `reset`, `spawnWave`, `buildShields`, `marchSpeed`, `overlap`, `gameOver`, `update`, `hitShield`, `render`, `text`.
-  5. Instantiation (`var game = new Game(canvas)`), `initAudio()`, keyboard listeners (with a ctrl/alt/meta guard), touch pointer handlers (`pointerdown`/`pointermove`/`pointerup`/`pointercancel`, with a `pointerType === "mouse"` guard), and the `requestAnimationFrame` loop (`frame()`).
-- `README.md` — play link, local-run instructions, controls, game rules, changelog.
-- `AGENTS.md`, `TASKS.md` — agent guidance and task tracking (this file and its companion).
+- Canvas 2D at an internal 800×600 resolution.
+- ES5-style JavaScript in one inline strict-mode script.
+- `Game` constructor with prototype methods for reset, waves, collision, update, and render.
+- State flow: `title` -> `playing` -> `waveTransition` -> `gameover`.
+- Automatic player firing, enemy fire, shields, UFO, lives, waves, procedural Web Audio, touch/keyboard input, and `localStorage` high score.
+- First cabinet vertical slice: responsive cabinet shell, quarter-backed starts, persistent Score Credits, and the affordability-gated Fire Control upgrade.
+- No dependencies, package manifest, build step, automated tests, lint configuration, or CI.
+- Static deployment from `main` through GitHub Pages.
 
-## Build / run / test
+Do not describe roadmap architecture as already implemented. Inspect the current tree and `git status` before every task; this section will become obsolete as foundation tasks land.
 
-- **Build:** none. Edit `index.html` and reload.
-- **Run locally** (from README): open `index.html` directly in a browser, or `python3 -m http.server 8000` and visit `http://localhost:8000/index.html`.
-- **Test:** there is no test suite, lint config, CI workflow, or package.json in this repo. Validation today means loading the page in a browser and exercising the behavior. Do not claim a test command exists; if you add tooling, add it explicitly.
+## Non-negotiable product rules
 
-## Conventions observed in the code
+1. Preserve the playable arcade throughout modularization.
+2. The game canvas remains the dominant cabinet element.
+3. Manual cabinet play is indefinitely viable. No player is forced to buy automation, follow the rebel signal, breach the mainframe, or leave manual play.
+4. The AI Interpreter installation is an explicit, confirmed, irreversible handoff for that progression profile. Afterward the player manages automation but cannot directly move or fire.
+5. Separate manual profiles remain possible after the handoff; never silently reverse the progressed profile.
+6. Quarters (`cabinetPlays`) and score-derived currency (`scoreCredits`) are distinct resources in code, saves, copy, tests, and UI.
+7. Score events grant their configured score and Score Credits at most once. Spending Score Credits never reduces current, lifetime, or high score.
+8. The breach is deliberate, story-qualified, and explicitly authorized. It cannot trigger from score alone.
+9. The canonical first breach includes at least 60 witnessed seconds of silence with only a CRT busy cursor.
+10. The mainframe terminal is a simulated virtual machine. Never execute user terminal input on the host, expose real paths, or read/write outside game save state.
+11. Prices, rewards, unlocks, effects, pacing, adaptive behavior, narrative triggers, terminal content, and ending requirements belong in validated configuration.
+12. No failure, enemy action, terminal mistake, migration, or config change may destroy the only usable save.
 
-- ES5 style throughout: `var` only, no arrow functions, no classes — `Game` is a constructor function with methods attached as `Game.prototype.name = function ...`.
-- One `"use strict";` string at the top of the script.
-- Internal 800×600 canvas coordinate system; the display scales responsively via CSS (`#game { width: min(800px, 100vw); height: auto; aspect-ratio: 4 / 3; }`). All geometry constants remain absolute pixels in the 800×600 space.
-- State machine on `this.state`: `"title"` → `"playing"` → `"waveTransition"` → `"gameover"` (restart via `Enter` or tap).
-- Time-based updates: `frame()` computes `dt` from `performance.now()`, clamped to 0.05s max, and passes it to `update(dt)`.
-- Audio and storage calls are defensive: wrapped in `try/catch`, guarded by `!audioCtx || muted`; the game must never throw if Web Audio or `localStorage` is unavailable.
-- HUD text is drawn with the `this.text(...)` helper using `monospace` fonts.
-- Standing rule: any code update to `index.html` must bump `var VERSION` (patch bump for fixes, minor bump for feature releases) and the README changelog should gain a matching row.
+## Sources of truth
 
-## Game rules encoded in constants (README agrees with code)
+Use them in this order when they disagree:
 
-- 55 invaders: `COLS = 11`, `ROWS = 5`; row points `[30, 20, 20, 10, 10]`; formation drops `DROP = 12` px at margins (`MARGIN = 16`).
-- March speed: `(40 + wave * 12) * (1 + 1.4 * killed / total)` (`marchSpeed`).
-- Firing is automatic during play: one player bullet at a time; fire cooldown `0.35` s; max 3 enemy bullets on screen; enemy bullet speed `170 + wave * 20`. The enemy firing interval depends only on the wave (`Math.max(0.25, 0.9 - wave * 0.08) * (0.5 + Math.random())`) and is deliberately **not** scaled by how many invaders remain — the 3-bullet cap is the throttle (fixed in v1.4.6; the earlier `* alive / total` multiplier was inverted and pinned three bullets in flight for the last third of every wave).
-- Enemy shooter selection builds an `aliveList` of alive invaders and picks one at random (with an empty-list guard).
-- UFO: spawns off the left edge (`x: -UFO_W`, `dir: 1`, always rightward), flies at `y = 36`, speed 90, despawns when `x > W`; points randomly from `[100, 200, 300]`.
-- Shields: 4 shields of 8×4 cells (8 px cells) at `y = H - 130`, rebuilt fresh every wave (`buildShields` is called from `spawnWave`).
-- Hi-score persists per origin under `localStorage` key `si-hiscore`; `recordHiScore` updates it whenever the live score surpasses the stored record (not only at game over); shown on title and game-over screens.
-- Controls: `←`/`→` or `A`/`D` move, fire is automatic (no key), `Enter` start/restart, `M` mute (ignored on key repeat). Key handling ignores `ctrlKey`/`altKey`/`metaKey` combinations. Touch: drag steers the ship (2 px dead zone in `update()`), tap starts/restarts; mouse pointers are ignored.
+1. Explicit current user instruction.
+2. `NarrativeandPlan.md` for intended experience and long-term design.
+3. `TASKS.md` for current approved work and dependencies.
+4. Tests and configuration for implemented contracts.
+5. Current source and README for observed behavior.
 
-## Gotchas
+If implementation and plan diverge, report the discrepancy. Do not silently rewrite product intent to match convenient code.
 
-- `game.input.touchTarget` is attached to the input object after construction rather than initialized in the `Game` constructor — works, but inconsistent with the other input fields.
-- `endTouch` sets `input.enter = false` on pointerup; a tap faster than one frame (~16 ms) could theoretically set `enter = true` on the title screen and have it cleared before `update()` consumes it — a rare lost start.
-- `hitShield` removes exactly one shield cell per bullet and returns true; invaders colliding with shields also die (both sides chew shields, per README).
-- Player bullet and enemy bullet cancel each other on overlap.
-- Game over fires when lives hit 0 **or** any alive invader reaches the player's `y` line.
-- `initAudio()` runs once at load; there is no recovery path if the AudioContext fails, and `frame()` has no try/catch, so a thrown exception kills the `requestAnimationFrame` chain.
-- The mute toggle is keydown-only with an `!e.repeat` guard; there is no keyup reset for `M`.
-- `input.fire` no longer exists (removed in v1.4.5); firing is gated only by `playerBullet === null && fireCooldown <= 0`.
-- No favicon asset exists in the repo.
+## Work protocol
 
-## Deployment
+Before changing files:
 
-- GitHub Pages serves `index.html` from the default branch (`main`) at https://chriseatontx.github.io/spaceinvaders/ (verified live; README links to it). There are no Pages workflow files or config in the repo — it is branch-based Pages.
-- After pushing to `main`, GitHub's built-in Pages build runs on its own (there is no workflow file to invoke); it can lag the push by 1–3 minutes, and the CDN then caches each page for 600 s (`Cache-Control: max-age=600`). Poll the build and re-fetch until the live page shows the new `var VERSION`:
-  - `gh api repos/chriseatontx/spaceinvaders/pages/builds/latest --jq '{status, commit_sha, built_at}'` — wait for `status: "built"` with `commit_sha` matching the pushed commit.
-  - `gh api -X POST repos/chriseatontx/spaceinvaders/pages/builds` — force a rebuild if the build never started or is stale.
-  - `curl -s -D - https://chriseatontx.github.io/spaceinvaders/index.html -o /dev/null` — a fresh deploy shows a new `ETag`/`Last-Modified` and `X-Cache: MISS`; `X-Cache: HIT` with a rising `Age` means the CDN is still serving the previous version.
-  - Do not blame the browser for a stale live page: compare `https://raw.githubusercontent.com/chriseatontx/spaceinvaders/main/index.html` (uncached, shows what `main` actually contains) against the Pages response first. A `raw` mismatch means the push/deploy is the problem; a `raw` match with a stale Pages copy means the build or CDN cache is.
+1. Read the relevant plan section and task entry, inspect the current files, and check `git status`.
+2. Confirm dependencies are complete and identify behavior that must remain unchanged.
 
-## How to change this repo safely
+During work:
 
-- Keep the single-file structure; do not introduce dependencies, modules, or a build step without an explicit decision.
-- Match the ES5/prototype style and the defensive audio/storage patterns above.
-- Bump `var VERSION` with every `index.html` change and add a README changelog row.
-- Validate by opening the page in a browser and exercising the changed behavior; keep changes scoped.
+- Keep the task narrowly scoped. Do not implement later roadmap phases opportunistically.
+- Preserve unrelated user changes and avoid broad rewrites unless the task explicitly authorizes them.
+- Separate behavior-preserving extraction from feature or balance changes.
+- Prefer small native modules and pure functions. Avoid adding a framework or build tool without a recorded decision and task.
+- Route state changes through domain services/events. UI, rendering, and audio do not directly grant currency, buy upgrades, or change phase.
+- Use stable IDs for upgrades, story flags, virtual files, operations, and events. Player-facing names may change; persisted IDs require migration.
+- Update tests, config validation, task status, plan decisions, README, and version/changelog as required by the same change.
+
+After work:
+
+- Run the narrowest relevant checks plus the required regression/smoke checks.
+- Report changed files, observed results, manual checks, and remaining risks.
+- Do not mark a task complete if acceptance criteria or migration/documentation work remains.
+
+## Architecture direction
+
+The target layout is described in `NarrativeandPlan.md`. While migrating:
+
+- `core/` owns state, events, phase guards, formulas, and deterministic RNG.
+- `arcade/` owns simulation and presentation of Space Invaders, not persistent economy.
+- `progression/` owns the scoring ledger, currencies, unlocks, purchases, and derived effects.
+- `interpreter/` owns automated policies, training, telemetry, and opponent adaptation interfaces.
+- `narrative/` owns triggers, messages, glitches, archive, and choices.
+- `terminal/` owns parsing and the virtual filesystem; it receives no host shell capability.
+- `mainframe/` owns its separate economy, operations, defenses, and ending.
+- `save/` owns persistence, migrations, checkpoints, and import/export.
+- `ui/` renders state and dispatches intentions; it is not authoritative state.
+- `config/` contains tunable content and schemas. Config may declare behavior/effects but must not contain unsafe executable strings.
+
+Dependency direction should point toward pure core/config contracts. Avoid circular imports and global mutable singletons.
+
+## Configuration rules
+
+- Never introduce a gameplay number directly in simulation/UI when it may need tuning. Give it a named config field.
+- Validate configuration at startup in development/tests: unique IDs, valid references, acyclic prerequisites, supported effect types, nonnegative costs, valid phase ownership, and sane caps.
+- Put formulas behind named strategies or formula IDs. Do not evaluate arbitrary expressions from save data.
+- Keep narrative copy/content separate from trigger evaluation.
+- Store a `configVersion` in saves and fixtures.
+- Changes to existing balance values must identify the intended metric/target and include before/after evidence when tooling exists.
+
+## State, scoring, and idempotency
+
+- Separate transient run state from persistent profile state.
+- Every reward-producing event has a unique deterministic or persisted event ID.
+- The reward ledger records processed IDs so retry, refresh, resume, migration, and duplicate collision callbacks cannot grant twice.
+- Update current score, lifetime score, high score, and Score Credits through one tested transaction.
+- Record whether a score came from manual or Interpreter mode.
+- Quarter insertion/consumption never uses the scoring ledger or Score Credits.
+- Use integer representations for currencies. If large-number support is later required, migrate deliberately rather than allowing unsafe-number drift.
+
+## Phase and control guards
+
+Canonical phases initially are `manualCabinet`, `interpreter`, `breach`, and `mainframe`; subordinate arcade states may remain separate.
+
+- Only a centralized transition service changes the canonical phase.
+- Every transition validates prerequisites, writes a checkpoint when required, and emits one transition event.
+- Manual movement/fire intentions are accepted only in `manualCabinet`.
+- Interpreter actions are accepted only in `interpreter`.
+- Cabinet simulation must not continue invisibly during `breach` unless the plan explicitly changes.
+- Mainframe commands are accepted only in `mainframe` and operate on virtual state.
+- Never infer an irreversible transition from a generic purchase flag.
+
+## Narrative and UX safeguards
+
+- Glitches must be brief, configurable, non-lethal, and never cover hazards or steal input during manual play.
+- Store a transcript/archive path for accessibility and missed messages without making the first glimpse verbose.
+- Show permanent consequences before the Interpreter purchase and breach authorization.
+- The first breach's silence and duration are part of the story, not a loading budget. Save around it and handle hidden tabs/reloads deterministically.
+- Avoid fake host-security claims. Terminal copy may be diegetic, but UI/help must make the simulation boundary clear.
+- Keep ARIA and Lumen identity/state in narrative configuration; do not scatter story checks across combat or terminal code.
+
+## Save and migration rules
+
+- Preserve the legacy `si-hiscore` value and import it exactly once; do not delete it automatically.
+- Use a namespaced save envelope with schema/config versions and multiple profiles.
+- Migrations are sequential, idempotent, fixture-tested, and validated after each step.
+- Keep last-known-good data before replacing a save.
+- Unknown IDs are retained or quarantined with a warning; they do not cause a wipe.
+- Create checkpoints before Interpreter installation and breach initialization.
+- Export/import validates structure and checksum and reports failures without mutating the active save.
+- Offline calculations are capped, auditable, and clock-anomaly resistant.
+
+## Virtual terminal security and behavior
+
+- Parse commands with game-owned tokenization; do not pass strings to PowerShell, `cmd`, a browser shell, server, `eval`, or dynamic module loading.
+- Normalize paths against the virtual root and prevent escaping it.
+- Implement virtual users, permissions, files, processes, and services as serializable data.
+- Destructive virtual commands require recoverable puzzle design: protected essentials, snapshots, respawnable artifacts, or clear reset of the puzzle node.
+- Commands must have deterministic, testable input/output and accessible textual output.
+- Realistic Unix organization is encouraged; exact real exploitation instructions and real credentials are not.
+
+## Testing expectations
+
+Until test tooling is added, do not claim automated tests exist. Use the manual v1.4.7 regression checklist recorded by the foundation task.
+
+As tooling lands, required layers are:
+
+- unit tests for pure simulation, formulas, config, ledger, phase transitions, parser, virtual paths/permissions, and migrations;
+- invariant/property tests for currencies, idempotency, rooted paths, and irreversible phase rules;
+- deterministic scenario tests for Interpreter/opponent/defense behavior;
+- browser smoke tests for the principal journey and save round-trips;
+- migration fixtures for every released schema plus malformed data;
+- accessibility and long-session/soak checks.
+
+Do not update snapshots blindly. Review whether behavior or copy changes comply with the plan.
+
+## Current-game regression contract
+
+Until replaced by automated coverage, preserve and manually verify:
+
+- title/start/restart and wave/game-over transitions;
+- responsive 800×600 playfield, keyboard and touch steering;
+- automatic firing, one player bullet under baseline rules, enemy fire cap/cadence;
+- formation movement/speed-up, collisions, shields, lives/invulnerability;
+- UFO spawn, motion, scoring, rendering, and sound;
+- procedural audio and mute behavior, including unavailable/suspended audio;
+- live high-score persistence and reload behavior;
+- clearing bullets at wave transition;
+- modifier-key and mouse-pointer guards.
+
+## Versioning, documentation, and deployment
+
+- While v1 uses `var VERSION` in `index.html`, bump it for shipped code changes and add a matching README changelog entry. When version ownership moves to config, document the new single source.
+- Planning-only document changes do not require a game version bump unless repository policy later says otherwise.
+- Keep README accurate for how the current build actually runs; do not document future commands as available.
+- Preserve static GitHub Pages compatibility unless an approved task changes deployment.
+- Verify deployed source/version after release; do not treat a successful push alone as deployment proof.
+
+## TASKS.md discipline
+
+- The board uses stable IDs and dependency order from `NarrativeandPlan.md`.
+- Only move a task to `IN PROGRESS` when work starts; record branch/owner when useful.
+- Split an epic before implementation when it cannot be reviewed safely as one change.
+- Each active task states scope, non-goals, files/contracts, tests, and acceptance criteria.
+- Keep completed entries concise and preserve decision links; move long historical detail to release notes when needed.
+- New ideas go to the appropriate future section or the plan's decision list. Do not bypass dependencies because a later feature is appealing.
