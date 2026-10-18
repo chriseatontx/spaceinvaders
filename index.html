@@ -18,7 +18,7 @@ var canvas = document.getElementById("game");
 var W = canvas.width;
 var H = canvas.height;
 
-var VERSION = "1.4.4";
+var VERSION = "1.4.5";
 
 var COLS = 11;
 var ROWS = 5;
@@ -170,7 +170,7 @@ function saveHiScore(v) {
 function Game(cv) {
   this.ctx = cv.getContext("2d");
   this.state = "title";
-  this.input = { left: false, right: false, fire: false, enter: false };
+  this.input = { left: false, right: false, enter: false };
   this.hiScore = loadHiScore();
   this.reset();
   this.state = "title";
@@ -435,9 +435,10 @@ Game.prototype.render = function () {
     this.text(c, "SPACE INVADERS", W / 2, 200, "48px monospace", "#4fd8ff");
     this.text(c, "HI-SCORE: " + this.hiScore, W / 2, 250, "20px monospace", "#d8ff4f");
     this.text(c, "Press ENTER to Start", W / 2, 300, "20px monospace", "#ffffff");
-    this.text(c, "Move: Arrows / A-D   Fire: Space", W / 2, 360, "16px monospace", "#9a9a9a");
-    this.text(c, "M: Mute", W / 2, 400, "16px monospace", "#9a9a9a");
-    this.text(c, "v" + VERSION, W / 2, 440, "16px monospace", "#9a9a9a");
+    this.text(c, "Move: Arrows / A-D / Touch", W / 2, 360, "16px monospace", "#9a9a9a");
+    this.text(c, "Fire: Automatic", W / 2, 400, "16px monospace", "#9a9a9a");
+    this.text(c, "M: Mute", W / 2, 440, "16px monospace", "#9a9a9a");
+    this.text(c, "v" + VERSION, W / 2, 480, "16px monospace", "#9a9a9a");
     return;
   }
   if (this.state === "gameover") {
@@ -517,7 +518,6 @@ window.addEventListener("keydown", function (e) {
   var k = e.key;
   if (k === "ArrowLeft" || k === "a" || k === "A") game.input.left = true;
   else if (k === "ArrowRight" || k === "d" || k === "D") game.input.right = true;
-  else if (k === " ") game.input.fire = true;
   else if (k === "Enter") game.input.enter = true;
   else if ((k === "m" || k === "M") && !e.repeat) toggleMute();
 });
@@ -526,7 +526,6 @@ window.addEventListener("keyup", function (e) {
   var k = e.key;
   if (k === "ArrowLeft" || k === "a" || k === "A") game.input.left = false;
   else if (k === "ArrowRight" || k === "d" || k === "D") game.input.right = false;
-  else if (k === " ") game.input.fire = false;
   else if (k === "Enter") game.input.enter = false;
 });
 
