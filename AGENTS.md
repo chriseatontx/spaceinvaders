@@ -60,7 +60,11 @@ A single-file browser clone of Space Invaders. The entire game — HTML, CSS, an
 ## Deployment
 
 - GitHub Pages serves `index.html` from the default branch (`main`) at https://chriseatontx.github.io/spaceinvaders/ (verified live; README links to it). There are no Pages workflow files or config in the repo — it is branch-based Pages.
-- After pushing to `main`, verify Pages actually serves the updated `index.html` (check the Pages build status and fetch the live page); trigger a rebuild if stale.
+- After pushing to `main`, GitHub's built-in Pages build runs on its own (there is no workflow file to invoke); it can lag the push by 1–3 minutes, and the CDN then caches each page for 600 s (`Cache-Control: max-age=600`). Poll the build and re-fetch until the live page shows the new `var VERSION`:
+  - `gh api repos/chriseatontx/spaceinvaders/pages/builds/latest --jq '{status, commit_sha, built_at}'` — wait for `status: "built"` with `commit_sha` matching the pushed commit.
+  - `gh api -X POST repos/chriseatontx/spaceinvaders/pages/builds` — force a rebuild if the build never started or is stale.
+  - `curl -s -D - https://chriseatontx.github.io/spaceinvaders/index.html -o /dev/null` — a fresh deploy shows a new `ETag`/`Last-Modified` and `X-Cache: MISS`; `X-Cache: HIT` with a rising `Age` means the CDN is still serving the previous version.
+  - Do not blame the browser for a stale live page: compare `https://raw.githubusercontent.com/chriseatontx/spaceinvaders/main/index.html` (uncached, shows what `main` actually contains) against the Pages response first. A `raw` mismatch means the push/deploy is the problem; a `raw` match with a stale Pages copy means the build or CDN cache is.
 
 ## How to change this repo safely
 
