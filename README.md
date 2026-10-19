@@ -1,6 +1,6 @@
 # Space Invaders
 
-A browser Space Invaders cabinet in its first progression state. The original arcade game remains the center of the experience, framed by a responsive service-cabinet interface. Everything still lives in `index.html` plus one static stylesheet (`css/cabinet.css`) — no build step, no dependencies, no network calls.
+A browser Space Invaders cabinet in its first progression state. The original arcade game remains the center of the experience, framed by a responsive service-cabinet interface. Everything still lives in `index.html` plus one static stylesheet (`css/cabinet.css`) and one config script (`js/config.js`) — no build step, no dependencies, no network calls.
 
 ## Play it online
 
@@ -46,7 +46,7 @@ Modifier-key combinations (e.g. Alt+Arrow) are left to the browser and never dri
 
 ## Version
 
-Current version: **1.6.2** (defined as `var VERSION` in `index.html` and shown on the title and game-over screens).
+Current version: **1.6.2** (defined as `var VERSION` in `js/config.js` and shown on the title and game-over screens).
 
 ## Changelog
 

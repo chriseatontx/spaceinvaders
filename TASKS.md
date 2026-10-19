@@ -14,7 +14,7 @@ Current blocker: **none for GMP-01**
 
 There must be exactly one `NEXT` task. Work on no other task.
 
-## FND-03B — Extract config constants
+## FND-03C — Extract the storage adapters
 
 Status: NEXT
 
@@ -29,34 +29,34 @@ Read first:
 
 Depends on:
 
-- FND-03A
+- FND-03B
 
 Goal:
 
-- Move the config constants from `index.html` into one static script file without changing behavior.
+- Move the storage adapters from `index.html` into one static script file without changing behavior.
 
 Change:
 
-1. Create the script file at the exact path chosen by `docs/architecture/module-map.md` — `js/config.js`.
-2. Move the tunable data owned by `config/` in the module map (`VERSION`, `CABINET_CONFIG`, `DEBUG_CONFIG`, `COLS`, `ROWS`, `CELL_W`, `CELL_H`, `INV_W`, `INV_H`, `MARGIN`, `DROP`, `GAME_OVER_FLOOR_MARGIN`, `SHIP_EXPLOSION_PARTICLES`, `SHIP_EXPLOSION_LIFE`, `SHIP_EXPLOSION_SPEED`, `ROW_POINTS`, `ROW_COLORS`, `SHIELD_COLOR`, `UFO_W`, `UFO_H`, `UFO_Y`, `UFO_SPEED`, `UFO_POINTS`) without changing any value.
-3. Load `js/config.js` from `index.html` before the code that reads it.
-4. Run the checks named by the module map for step 2.
+1. Create the script file at the exact path chosen by `docs/architecture/module-map.md` — `js/save.js`.
+2. Move the storage adapters owned by `save/` in the module map (`loadHiScore`, `saveHiScore`, `loadInteger`, `saveInteger`, `loadBoolean`, `saveBoolean`) without changing any code.
+3. Load `js/save.js` from `index.html` after `js/config.js` and before the code that calls it (dependency order config → save).
+4. Run the checks named by the module map for step 3.
 
 Do not:
 
-- Change any value, color, pacing, breakpoint, label, control, or balance.
+- Change any storage key, persistence behavior, value, color, pacing, breakpoint, label, control, or balance.
 - Extract code owned by other modules in this task.
 - Add a build step or dependency.
 
 Verify:
 
-1. Run the v1.6.0 regression checks named by the module map for step 2 (1, 2, 17, 24, 25, 26) at desktop and narrow viewport sizes with a clean and a dirty `localStorage`.
+1. Run the v1.6.0 regression checks named by the module map for step 3 (1, 3, 27, 28, 30) at desktop and narrow viewport sizes with a clean and a dirty `localStorage`.
 2. Confirm the game loads from the run methods in `README.md`.
 3. Confirm browser developer tools report no failed request.
 4. Run `git diff --check`.
 
 Done when:
 
-- `index.html` declares none of the config constants.
+- `index.html` defines none of the storage adapters.
 - Gameplay, presentation, and persistence are unchanged at the tested viewports.
 - Every named check passes.
