@@ -8,9 +8,12 @@ const html = fs.readFileSync(htmlPath, 'utf8');
 const match = /<script>([\s\S]*?)<\/script>/.exec(html);
 if (!match) throw new Error('No inline script found in index.html');
 
-const canvas = { width: 800, height: 600, getContext: function () { return {}; } };
+const canvas = { width: 800, height: 600, getContext: function () { return {}; }, addEventListener: function () {} };
+function stubElement() {
+  return { firstChild: { nodeValue: '' }, textContent: '', innerHTML: '', hidden: false, disabled: false, addEventListener: function () {} };
+}
 const sandbox = {
-  document: { getElementById: function () { return canvas; } },
+  document: { getElementById: function (id) { return id === 'game' ? canvas : stubElement(); } },
   window: { addEventListener: function () {} },
   localStorage: { getItem: function () { return null; }, setItem: function () {} },
   performance: { now: function () { return 0; } },
