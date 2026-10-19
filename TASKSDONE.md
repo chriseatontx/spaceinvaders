@@ -296,3 +296,31 @@ Notes:
 
 - FND-03D (audio functions and state -> `js/arcade.js`, module map step 4) was queued as the single `NEXT` task, mirroring how FND-03B queued FND-03C; its requirements come from the module map extraction table.
 - README updated to note `js/save.js` alongside `css/cabinet.css` and `js/config.js`; no version bump, no changelog entry (behavior unchanged).
+
+## FND-03D - Extract the audio functions and state to js/arcade.js
+
+Completed: 2026-10-19
+
+Commit: not yet recorded; present in the current v1.6.2 worktree
+
+Result:
+
+- Created `js/arcade.js` (header comment + the 3,541-byte audio block) holding `initAudio`, `wakeAudio`, `toggleMute`, `stopUfoSound`, `playNote`, `playFire`, `playQuarter`, `playServiceInstall`, `playExplosion`, `playDeath`, `playPlayerExplosion`, `playUfoSpawn`, `playUfoHit`, `playWaveJingle`, `playGameOver`, `startUfoSound`, `updateUfoSound` and audio state `audioCtx`, `muted`, `ufoSound`, moved byte-for-byte (extraction script diffed the removed `index.html` block against the new file; `index.html` 26,509 -> 23,003 bytes); `index.html` now declares none of them (grep finds no definitions; only call sites remain).
+- `<script src="js/arcade.js">` added at `index.html` after `js/save.js` and before the inline script; script order config -> save -> arcade; no other markup, JavaScript, or file changed.
+
+Verified:
+
+- Check 7 (auto-fire after 0.6 s idle): bullet live at (399,318) narrow and (399,430) desktop - PASS at desktop clean/dirty, narrow clean/dirty.
+- Check 12 (game over): `state` gameover, notice `RUN ENDED // ADD QUARTER TO PLAY AGAIN`; clean runs raised `si-hiscore` from 0 (150/540/560/1000); dirty runs preserved `si-hiscore` 970/1000 and accumulated `si-score-credits` - PASS at desktop clean/dirty and narrow clean/dirty.
+- Check 20 (UFO spawn): spawn `ufoTimer` re-seeded 15.26-25.00 s (within 15 + rand x 10), `dir` 1, x travelled -24/-18 -> 801 left-to-right - PASS at all four viewport/storage combinations.
+- Check 21 (UFO kill): score delta matched the spawn `points` band (d=100/200/300 with matching pts) with the invader alive count unchanged; `d:0` despawns excluded - PASS at all four combinations.
+- Check 29 (mute): `m` keydown toggled `muted` false -> true -> false - PASS at all four combinations.
+- Harness: page-scope bots calling `game.update(1/30)` directly (rAF throttled); narrow viewport via same-origin 430 px iframe in the desktop tab (`innerWidth` 426/430, both media queries true); desktop via 1000 px iframe (`innerWidth` 996, both media queries false) and the 800 px top tab.
+- Served load (`python -m http.server 8000`): `GET /index.html`, `/js/config.js`, `/js/save.js`, `/js/arcade.js`, `/css/cabinet.css` all 200 (304 on conditional revalidation); console reported 0 errors/0 warnings; only non-page 404s were the harness `/health` pings and the browser-default `/favicon.ico` (absent before the move too). Direct `file://` open rejected by the harness (same limitation recorded in the regression doc).
+- `git diff --check` exit 0 (autocrlf notices only, no whitespace findings).
+
+Notes:
+
+- FND-03E (progression methods and ledger -> `js/progression.js`, module map step 5) was queued as the single `NEXT` task, mirroring how FND-03C queued FND-03D; its requirements come from the module map extraction table.
+- README updated to note `js/arcade.js` alongside `css/cabinet.css`, `js/config.js`, and `js/save.js`; no version bump, no changelog entry (behavior unchanged).
+- `js/arcade.js` currently holds only the audio block; the `Game` simulation/render groups named in the module map move into it in step 7.
