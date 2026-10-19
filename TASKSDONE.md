@@ -269,3 +269,30 @@ Notes:
 
 - FND-03C (storage adapters -> `js/save.js`, module map step 3) was queued as the single `NEXT` task, mirroring how FND-03A queued FND-03B; its requirements come from the module map extraction table.
 - README updated to note `js/config.js` and that `var VERSION` is defined there; no version bump, no changelog entry (behavior unchanged).
+
+## FND-03C - Extract the storage adapters to js/save.js
+
+Completed: 2026-10-19
+
+Commit: not yet recorded; present in the current v1.6.2 worktree
+
+Result:
+
+- Created `js/save.js` holding `loadHiScore`, `saveHiScore`, `loadInteger`, `saveInteger`, `loadBoolean`, `saveBoolean` moved verbatim (byte-identical to the removed block, verified by diffing the `git show HEAD:index.html` block against the new file); `index.html` now declares none of them (grep finds no `function` definitions).
+- `js/save.js` is loaded at `index.html` line 39, after `js/config.js` (line 38) and before the inline script that calls it; no other markup, JavaScript, or file changed.
+
+Verified:
+
+- Check 1 clean `localStorage` (empty): title state, `INSERT A QUARTER TO START`, CREDIT 00, 000000, card hidden, `INSTALL // 120 SCORE CREDITS` disabled, `muted` false, `touchTarget` null - PASS at desktop (`innerWidth` 1000) and narrow (same-origin 430 px iframe, `innerWidth` 430, both media queries true, single column `403px`, canvas `pixelated`).
+- Check 3: real click on ADD QUARTER at desktop - plays 0->1, `si-cabinet-plays="1"` saved by the moved `saveInteger`, CREDIT 01, notice/status `QUARTER ACCEPTED // PRESS ENTER` - PASS. Narrow: click dispatched on the frame's button (harness cannot reach iframe refs; same limitation class recorded in the regression doc) - same values - PASS.
+- Check 27 dirty reload (`si-fire-control-1=1`, `si-score-credits=220`, `si-hiscore=2450`, `si-cabinet-plays=0`): `fireControlOwned` true, card visible, button `INSTALLED // 20% FASTER` disabled, credits 220 and hi 2450 restored - PASS at desktop and in a fresh narrow iframe.
+- Check 28: `hiScore` 2450 read back from `si-hiscore="2450"` after reload - PASS at both widths.
+- Check 30: all four keys persisted and were re-read; title showed `INSERT A QUARTER TO START` with 0 plays - PASS at both widths.
+- Writer round-trip through the moved adapters: fire control reset to `0`, reloaded, real INSTALL click spent exactly 120 (220 -> 100), `si-fire-control-1="1"` saved by the moved `saveBoolean`, notice `FIRE CONTROL INSTALLED // +20% RATE` - PASS.
+- Served load (`python -m http.server 8000`): `GET /index.html`, `/js/save.js`, `/js/config.js`, `/css/cabinet.css` all 200; console clean at `level: error` (no failed-resource or uncaught-error messages). Direct `file://` open rejected by the harness (same limitation recorded in the regression doc); the relative src resolves to an existing file next to `index.html`.
+- `git diff --check` exit 0 (autocrlf warnings only, no whitespace findings).
+
+Notes:
+
+- FND-03D (audio functions and state -> `js/arcade.js`, module map step 4) was queued as the single `NEXT` task, mirroring how FND-03B queued FND-03C; its requirements come from the module map extraction table.
+- README updated to note `js/save.js` alongside `css/cabinet.css` and `js/config.js`; no version bump, no changelog entry (behavior unchanged).

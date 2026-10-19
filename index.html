@@ -36,6 +36,7 @@
   <footer class="footer-strip"><span>MOVE: ARROWS / A-D / TOUCH</span><span>FIRE: AUTOMATIC</span><span>M: SOUND</span></footer>
 </main>
 <script src="js/config.js"></script>
+<script src="js/save.js"></script>
 <script>
 "use strict";
 
@@ -191,43 +192,6 @@ function updateUfoSound(u) {
     ufoSound.osc.frequency.setValueAtTime(Math.max(50, freq), audioCtx.currentTime);
     ufoSound.gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
   } catch (e) {}
-}
-
-
-function loadHiScore() {
-  try {
-    var v = Number(localStorage.getItem("si-hiscore"));
-    return Number.isInteger(v) && v >= 0 ? v : 0;
-  } catch (e) {
-    return 0;
-  }
-}
-
-function saveHiScore(v) {
-  try {
-    localStorage.setItem("si-hiscore", String(v));
-  } catch (e) {}
-}
-
-function loadInteger(key) {
-  try {
-    var value = Number(localStorage.getItem(key));
-    return Number.isInteger(value) && value >= 0 ? value : 0;
-  } catch (e) {
-    return 0;
-  }
-}
-
-function saveInteger(key, value) {
-  try { localStorage.setItem(key, String(value)); } catch (e) {}
-}
-
-function loadBoolean(key) {
-  try { return localStorage.getItem(key) === "1"; } catch (e) { return false; }
-}
-
-function saveBoolean(key, value) {
-  try { localStorage.setItem(key, value ? "1" : "0"); } catch (e) {}
 }
 
 function Game(cv) {
