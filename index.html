@@ -397,7 +397,7 @@ Game.prototype.spawnWave = function () {
 
 Game.prototype.buildShields = function () {
   this.shields = [];
-  var cell = 8;
+  var cell = SHIELD_CELL;
   var shieldW = 8 * cell;
   var shieldH = 4 * cell;
   var gap = (W - 4 * shieldW) / 5;
@@ -420,6 +420,18 @@ Game.prototype.marchSpeed = function () {
 
 Game.prototype.overlap = function (a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+};
+
+Game.prototype.advanceBulletY = function (bullet, dt) {
+  var remaining = Math.abs(bullet.vy) * dt;
+  var dir = bullet.vy < 0 ? -1 : 1;
+  while (remaining > 0) {
+    var step = Math.min(SHIELD_CELL, remaining);
+    bullet.y += dir * step;
+    remaining -= step;
+    if (this.hitShield(bullet)) return true;
+  }
+  return false;
 };
 
 Game.prototype.spawnShipExplosion = function () {
@@ -572,9 +584,8 @@ Game.prototype.update = function (dt) {
   var j, eb;
   for (j = this.enemyBullets.length - 1; j >= 0; j--) {
     eb = this.enemyBullets[j];
-    eb.y += eb.vy * dt;
+    if (this.advanceBulletY(eb, dt)) { this.enemyBullets.splice(j, 1); continue; }
     if (eb.y > H) { this.enemyBullets.splice(j, 1); continue; }
-    if (this.hitShield(eb)) { this.enemyBullets.splice(j, 1); continue; }
     if (this.playerBullet && this.overlap(eb, this.playerBullet)) {
       this.playerBullet = null;
       this.enemyBullets.splice(j, 1);
@@ -593,9 +604,8 @@ Game.prototype.update = function (dt) {
 
   if (this.playerBullet) {
     var b = this.playerBullet;
-    b.y += b.vy * dt;
-    if (b.y + b.h < 0) { this.playerBullet = null; }
-    else if (this.hitShield(b)) { this.playerBullet = null; }
+    if (this.advanceBulletY(b, dt)) { this.playerBullet = null; }
+    else if (b.y + b.h < 0) { this.playerBullet = null; }
     else if (this.ufo && this.overlap(b, this.ufo)) {
       this.awardScore(this.ufo.points);
       stopUfoSound();
