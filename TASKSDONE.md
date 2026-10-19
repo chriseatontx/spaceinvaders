@@ -241,3 +241,31 @@ Notes:
 
 - FND-03B (config constants -> `js/config.js`, module map step 2) was queued as the single `NEXT` task, mirroring how FND-02 queued FND-03A; its requirements come from the module map extraction table.
 - The regression doc's recorded v1.6.2 values for checks 31/32 were reproduced by this run, so its `Recorded` lines were left unchanged.
+
+## FND-03B - Move the config constants to js/config.js
+
+Completed: 2026-10-18
+
+Commit: not yet recorded; present in the current v1.6.2 worktree
+
+Result:
+
+- Created `js/config.js` (997 bytes) holding `VERSION` ("1.6.2"), `CABINET_CONFIG`, `DEBUG_CONFIG`, `COLS`, `ROWS`, `CELL_W`, `CELL_H`, `INV_W`, `INV_H`, `MARGIN`, `DROP`, `GAME_OVER_FLOOR_MARGIN`, `SHIP_EXPLOSION_PARTICLES`, `SHIP_EXPLOSION_LIFE`, `SHIP_EXPLOSION_SPEED`, `ROW_POINTS`, `ROW_COLORS`, `SHIELD_COLOR`, `UFO_W`, `UFO_H`, `UFO_Y`, `UFO_SPEED`, `UFO_POINTS` with every value unchanged; `index.html` now declares none of them (grep finds only the `<script src="js/config.js">` tag).
+- `js/config.js` is loaded at `index.html` line 38, before the inline script that reads it; no other markup, JavaScript, or file changed.
+
+Verified:
+
+- Check 1 clean `localStorage` (empty): title state, `INSERT A QUARTER TO START`, CREDIT 00, 000000, card hidden, `INSTALL // 120 SCORE CREDITS` disabled, `muted` false, `touchTarget` null - PASS. Dirty reload (`si-hiscore=3500`, `si-score-credits=3380`, `si-fire-control-1=1`, `si-cabinet-plays=0`): hi 3500, credits 3380, card visible, `INSTALLED // 20% FASTER` disabled, state title, `INSERT A QUARTER TO START` - PASS.
+- Check 2: canvas 800x600; all 8 title text bands lit (rows 168-200, 237-249, 287-303, 320-329, 349-361, 389-399, 430-439, 470-479) - PASS.
+- Check 17: with debug speed x2 (`DEBUG_CONFIG.speedMultiplier` read from the external file) and invincibility, play continued with the formation past the ship line (maxY 568 > 556, still playing); game over fired at maxY exactly 580 = H - `GAME_OVER_FLOOR_MARGIN` - PASS.
+- Check 24: at credits >= 120 the card revealed, button enabled, text `INSTALL // 120 SCORE CREDITS` - PASS.
+- Check 25: real click spent exactly 120 (350 + 100 score delta - 120 = 330), `fireControlOwned` true, `si-fire-control-1="1"` saved, button `INSTALLED // 20% FASTER` disabled, notice `FIRE CONTROL INSTALLED // +20% RATE` - PASS.
+- Check 26: pre-purchase cooldown peak 0.35; post-purchase peak 0.28 (0.35 x 0.8 config multiplier) over 2909 frames - PASS.
+- Narrow viewport via same-origin 430 px iframe (`innerWidth` 426): both media queries true, single column 399px, canvas CSS 381px, `pixelated`, title bands lit, status correct - checks 1/2 PASS at narrow width.
+- Served load (`python -m http.server 8000`): `GET /js/config.js` 200, no failed requests, console clean. Direct `file://` open rejected by the harness (same limitation recorded in the regression doc); the relative src resolves to an existing file next to `index.html`.
+- `git diff --check` exit 0 (autocrlf warnings only, no whitespace findings).
+
+Notes:
+
+- FND-03C (storage adapters -> `js/save.js`, module map step 3) was queued as the single `NEXT` task, mirroring how FND-03A queued FND-03B; its requirements come from the module map extraction table.
+- README updated to note `js/config.js` and that `var VERSION` is defined there; no version bump, no changelog entry (behavior unchanged).

@@ -5,6 +5,8 @@ const assert = require('assert');
 
 const htmlPath = path.resolve(__dirname, '..', 'index.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
+const configPath = path.resolve(__dirname, '..', 'js', 'config.js');
+const configSrc = fs.readFileSync(configPath, 'utf8');
 const match = /<script>([\s\S]*?)<\/script>/.exec(html);
 if (!match) throw new Error('No inline script found in index.html');
 
@@ -21,6 +23,7 @@ const sandbox = {
   console: console,
 };
 
+vm.runInNewContext(configSrc, sandbox);
 vm.runInNewContext(match[1], sandbox);
 const Game = sandbox.Game || vm.runInNewContext('Game', sandbox);
 
