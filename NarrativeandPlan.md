@@ -455,7 +455,7 @@ Each numbered item is intended to become one epic in `TASKS.md`; split it into r
 
 ### Foundation
 
-1. **Baseline and regression contract** — Document current v1.4.7 behavior; add deterministic RNG seams and a manual smoke checklist without changing play.
+1. **Baseline and regression contract** — Document current v1.6.0 behavior; identify deterministic RNG/time seams and create a manual regression checklist without changing play.
 2. **Module extraction** — Move CSS and JavaScript into native modules in small behavior-preserving steps; keep static GitHub Pages operation.
 3. **Pure arcade domain** — Separate simulation, rendering, input, audio, and storage; make scoring/collision/waves headlessly testable.
 4. **Canonical state and event system** — Define transient run state, persistent profile state, immutable event records, and centralized phase transitions.
@@ -575,14 +575,20 @@ These are planned defaults but deserve explicit review before their owning task 
 7. Whether the first breach remains unskippable under all accessibility modes or gains a clearly labeled accommodation.
 8. The scope of authored versus systemic ARIA conversation for the first installment.
 
+### Resolved during implementation
+
+- **FIX-01 (shipped v1.6.0):** Invader/blocker erosion grants no score and no Score Credits; only player fire (and any future configured effect) scores, so waves clear only on player fire. The game-over descent threshold is the playfield floor, expressed as the named `GAME_OVER_FLOOR_MARGIN` pixels above the canvas bottom, evaluated together with the ship's line so whichever comes first ends the run.
+- **CAB-10 (shipped v1.6.0):** An upgrade's cost is revealed only once affordable — the reveal/affordability rule is unchanged from v1.5.0. The button's accessible name carries the config-derived numeric cost plus the explicit `SCORE CREDITS` currency label whenever the button is shown, and the owned label states `INSTALLED` rather than a price, so it cannot be misread as a free purchase.
+
 ## 16. Task tracking rules
 
-`TASKS.md` is the execution board; this document owns product intent, narrative continuity, architecture direction, and global acceptance criteria.
+`TASKS.md` is the short active execution queue, `TASKSDONE.md` is the completed-work archive, and this document owns product intent, narrative continuity, architecture direction, and global acceptance criteria.
 
 - Use stable task IDs from the roadmap (`FND-*`, `CAB-*`, `INT-*`, `BRH-*`, `MFR-*`, `REL-*`).
+- Keep exactly one task marked `NEXT`; retain only the current milestone and near-term work in `TASKS.md`.
 - Every implementation task lists dependencies, exact scope, out-of-scope items, files expected to change, tests, and acceptance criteria.
 - Keep at most one architecture-sensitive task in progress unless parallel work has disjoint files and contracts.
 - Do not combine refactoring and balance changes in one task.
 - Record design decisions in this document before implementing them.
-- Mark tasks complete only after tests and documentation land together.
+- After verification succeeds, remove the completed task from `TASKS.md` and append a compact result to `TASKSDONE.md`.
 - Revalidate observed line references; do not preserve stale ones as the single file is modularized.

@@ -37,6 +37,12 @@
   .upgrade-card p { margin: 0 0 9px; color: #b6d1bd; font-size: 11px; line-height: 1.35; }
   .upgrade-card button { width: 100%; cursor: pointer; padding: 8px; border: 1px solid var(--acid); background: #1d3a1b; color: #efffd3; font-weight: bold; }
   .upgrade-card button:disabled { cursor: default; border-color: #55704d; background: #1a2117; color: #849076; }
+  .debug-panel { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px dashed #d18a2e; border-radius: 6px; background: rgba(0,0,0,.3); }
+  .debug-panel[hidden] { display: none; }
+  .debug-panel h2 { margin: 0 0 4px; color: var(--acid); font-size: 12px; letter-spacing: 1px; }
+  .debug-panel button { width: 100%; cursor: pointer; padding: 8px; border: 1px solid var(--acid); background: #1d3a1b; color: #efffd3; font-weight: bold; font-size: 11px; letter-spacing: .5px; }
+  .debug-panel button[disabled] { cursor: default; border-color: #55704d; background: #1a2117; color: #849076; }
+  .debug-readout { color: var(--acid); font-size: 10px; letter-spacing: 1px; }
   .status-light { width: 10px; height: 10px; display: inline-block; margin-right: 6px; border-radius: 50%; background: #ffbd52; box-shadow: 0 0 8px #ffbd52; vertical-align: -1px; }
   .status-line { min-height: 31px; color: #a8c3cc; font-size: 10px; line-height: 1.35; }
   .footer-strip { display: flex; justify-content: space-between; gap: 12px; padding: 7px 13px; border: 2px solid #294b58; border-radius: 3px 3px 12px 12px; background: #08131a; color: #6c99a6; font-size: 10px; letter-spacing: 1px; }
@@ -60,7 +66,15 @@
       <section class="upgrade-card" id="fire-control-card" hidden aria-live="polite">
         <h2>FIRE CONTROL</h2>
         <p>Cycle timing stabilized. Fire 20% faster.</p>
-        <button id="buy-fire-control" type="button">INSTALL // 120 CR</button>
+        <button id="buy-fire-control" type="button">INSTALL</button>
+      </section>
+      <button class="cabinet-button" id="debug-toggle" type="button">DEBUG: OFF</button>
+      <section class="debug-panel" id="debug-panel" hidden aria-live="polite">
+        <h2>SERVICE DEBUG</h2>
+        <button id="debug-gun" type="button">GUN: AUTO</button>
+        <button id="debug-speed" type="button">SPEED: 1X</button>
+        <button id="debug-inv" type="button">INVINCIBLE: OFF</button>
+        <div class="debug-readout" id="debug-readout">DEBUG ON</div>
       </section>
       <div class="status-line" id="cabinet-status"><span class="status-light"></span>INSERT A QUARTER TO START</div>
     </aside>
@@ -79,15 +93,24 @@ var cabinetStatusNode = document.getElementById("cabinet-status");
 var addQuarterButton = document.getElementById("add-quarter");
 var fireControlCard = document.getElementById("fire-control-card");
 var buyFireControlButton = document.getElementById("buy-fire-control");
+var debugToggleButton = document.getElementById("debug-toggle");
+var debugPanel = document.getElementById("debug-panel");
+var debugGunButton = document.getElementById("debug-gun");
+var debugSpeedButton = document.getElementById("debug-speed");
+var debugInvButton = document.getElementById("debug-inv");
+var debugReadoutNode = document.getElementById("debug-readout");
 
-var VERSION = "1.5.0";
+var VERSION = "1.6.1";
 
 var CABINET_CONFIG = {
   quarterCost: 1,
   scoreCreditRate: 1,
+  scoreCreditLabel: "SCORE CREDITS",
   fireControl: { id: "fire_control_1", cost: 120, cooldownMultiplier: 0.8 },
   storage: { plays: "si-cabinet-plays", scoreCredits: "si-score-credits", fireControl: "si-fire-control-1" }
 };
+
+var DEBUG_CONFIG = { speedMultiplier: 2 };
 
 var COLS = 11;
 var ROWS = 5;
@@ -97,6 +120,10 @@ var INV_W = 24;
 var INV_H = 16;
 var MARGIN = 16;
 var DROP = 12;
+var GAME_OVER_FLOOR_MARGIN = 20;
+var SHIP_EXPLOSION_PARTICLES = 18;
+var SHIP_EXPLOSION_LIFE = 1.1;
+var SHIP_EXPLOSION_SPEED = 150;
 var ROW_POINTS = [30, 20, 20, 10, 10];
 var ROW_COLORS = ["#ff4fd8", "#7f7fff", "#4fd8ff", "#4fff4f", "#d8ff4f"];
 var SHIELD_COLOR = "#3fae5f";
@@ -181,6 +208,11 @@ function playExplosion() {
 
 function playDeath() {
   playNote(320, 0, 0.35, "triangle", 0.12, 80);
+}
+
+function playPlayerExplosion() {
+  playNote(200, 0, 0.3, "sawtooth", 0.16, 30);
+  playNote(120, 0.12, 0.35, "sawtooth", 0.14, 25);
 }
 
 function playUfoSpawn() {
@@ -285,9 +317,11 @@ function Game(cv) {
   this.scoreCredits = loadInteger(CABINET_CONFIG.storage.scoreCredits);
   this.fireControlOwned = loadBoolean(CABINET_CONFIG.storage.fireControl);
   this.notice = "INSERT A QUARTER TO START";
+  this.debug = { on: false, gunOff: false, timeScale: 1, invincible: false };
   this.reset();
   this.state = "title";
   this.syncCabinetUi();
+  this.syncDebugUi();
 }
 
 Game.prototype.reset = function () {
@@ -300,6 +334,7 @@ Game.prototype.reset = function () {
   this.enemyFireTimer = 1.2;
   this.playerBullet = null;
   this.enemyBullets = [];
+  this.explosions = [];
   this.player = { x: W / 2 - 18, y: H - 44, w: 36, h: 16, speed: 260, invuln: 0 };
   this.ufo = null;
   this.ufoTimer = 15 + Math.random() * 10;
@@ -359,6 +394,47 @@ Game.prototype.currentFireCooldown = function () {
   return 0.35 * (this.fireControlOwned ? CABINET_CONFIG.fireControl.cooldownMultiplier : 1);
 };
 
+Game.prototype.toggleDebugMode = function () {
+  this.debug.on = !this.debug.on;
+  if (!this.debug.on) {
+    this.debug.gunOff = false;
+    this.debug.timeScale = 1;
+    this.debug.invincible = false;
+  }
+  this.syncDebugUi();
+};
+
+Game.prototype.toggleDebugGun = function () {
+  if (!this.debug.on) return;
+  this.debug.gunOff = !this.debug.gunOff;
+  this.syncDebugUi();
+};
+
+Game.prototype.toggleDebugSpeed = function () {
+  if (!this.debug.on) return;
+  this.debug.timeScale = this.debug.timeScale === 1 ? DEBUG_CONFIG.speedMultiplier : 1;
+  this.syncDebugUi();
+};
+
+Game.prototype.toggleDebugInvincible = function () {
+  if (!this.debug.on) return;
+  this.debug.invincible = !this.debug.invincible;
+  this.syncDebugUi();
+};
+
+Game.prototype.syncDebugUi = function () {
+  debugToggleButton.textContent = "DEBUG: " + (this.debug.on ? "ON" : "OFF");
+  debugPanel.hidden = !this.debug.on;
+  debugGunButton.textContent = "GUN: " + (this.debug.gunOff ? "OFF" : "AUTO");
+  debugSpeedButton.textContent = "SPEED: " + this.debug.timeScale + "X";
+  debugInvButton.textContent = "INVINCIBLE: " + (this.debug.invincible ? "ON" : "OFF");
+  var flags = [];
+  if (this.debug.gunOff) flags.push("GUN OFF");
+  if (this.debug.timeScale > 1) flags.push("SPEED X" + this.debug.timeScale);
+  if (this.debug.invincible) flags.push("INVINCIBLE");
+  debugReadoutNode.textContent = this.debug.on ? (flags.length ? "ACTIVE: " + flags.join(" / ") : "NO MODS ACTIVE") : "DEBUG OFF";
+};
+
 Game.prototype.syncCabinetUi = function () {
   var upgrade = CABINET_CONFIG.fireControl;
   cabinetPlaysNode.firstChild.nodeValue = "CREDIT " + ("0" + this.cabinetPlays).slice(-2);
@@ -370,7 +446,7 @@ Game.prototype.syncCabinetUi = function () {
   } else {
     fireControlCard.hidden = this.scoreCredits < upgrade.cost;
     buyFireControlButton.disabled = this.scoreCredits < upgrade.cost;
-    buyFireControlButton.textContent = "INSTALL // " + upgrade.cost + " CR";
+    buyFireControlButton.textContent = "INSTALL // " + upgrade.cost + " " + CABINET_CONFIG.scoreCreditLabel;
   }
   cabinetStatusNode.innerHTML = '<span class="status-light"></span>' + this.notice;
 };
@@ -424,6 +500,51 @@ Game.prototype.overlap = function (a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 };
 
+Game.prototype.spawnShipExplosion = function () {
+  var p = this.player;
+  var cx = p.x + p.w / 2;
+  var cy = p.y + p.h / 2;
+  for (var i = 0; i < SHIP_EXPLOSION_PARTICLES; i++) {
+    var angle = (i / SHIP_EXPLOSION_PARTICLES) * Math.PI * 2;
+    var speed = SHIP_EXPLOSION_SPEED * (0.5 + Math.random() * 0.5);
+    this.explosions.push({
+      x: cx,
+      y: cy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: SHIP_EXPLOSION_LIFE,
+      maxLife: SHIP_EXPLOSION_LIFE,
+      color: i % 2 ? "#d8ff4f" : "#ffbe58"
+    });
+  }
+};
+
+Game.prototype.updateExplosions = function (dt) {
+  for (var i = this.explosions.length - 1; i >= 0; i--) {
+    var e = this.explosions[i];
+    e.x += e.vx * dt;
+    e.y += e.vy * dt;
+    e.life -= dt;
+    if (e.life <= 0) this.explosions.splice(i, 1);
+  }
+};
+
+Game.prototype.drawExplosions = function (c) {
+  for (var i = 0; i < this.explosions.length; i++) {
+    var ex = this.explosions[i];
+    var frac = ex.life / ex.maxLife;
+    var size = 2 + Math.round(3 * frac);
+    c.fillStyle = ex.color;
+    c.fillRect(ex.x - size / 2, ex.y - size / 2, size, size);
+  }
+};
+
+Game.prototype.destroyPlayer = function () {
+  this.spawnShipExplosion();
+  playPlayerExplosion();
+  this.gameOver();
+};
+
 Game.prototype.gameOver = function () {
   this.state = "gameover";
   if (this.score > this.hiScore) this.hiScore = this.score;
@@ -442,6 +563,7 @@ Game.prototype.recordHiScore = function () {
 };
 
 Game.prototype.update = function (dt) {
+  this.updateExplosions(dt);
   if (this.state === "title" || this.state === "gameover") {
     if (this.input.enter) {
       this.input.enter = false;
@@ -472,7 +594,7 @@ Game.prototype.update = function (dt) {
   p.x = Math.max(MARGIN, Math.min(W - MARGIN - p.w, p.x));
 
   this.fireCooldown -= dt;
-  if (this.playerBullet === null && this.fireCooldown <= 0) {
+  if (this.playerBullet === null && this.fireCooldown <= 0 && !this.debug.gunOff) {
     this.playerBullet = { x: p.x + p.w / 2 - 1, y: p.y, w: 2, h: 8, vy: -420 };
     this.fireCooldown = this.currentFireCooldown();
     playFire();
@@ -538,6 +660,7 @@ Game.prototype.update = function (dt) {
     }
     if (p.invuln <= 0 && this.overlap(eb, p)) {
       this.enemyBullets.splice(j, 1);
+      if (this.debug.invincible) continue;
       this.lives--;
       if (this.lives > 0) playDeath();
       p.invuln = 1.5;
@@ -573,21 +696,14 @@ Game.prototype.update = function (dt) {
     }
   }
 
+  var floorLine = H - GAME_OVER_FLOOR_MARGIN;
   for (i = 0; i < this.invaders.length; i++) {
     inv = this.invaders[i];
     if (!inv.alive) continue;
-    if (inv.y + inv.h >= p.y) { this.gameOver(); return; }
-    var hitAny = false;
+    if (this.overlap(inv, p) && !this.debug.invincible) { this.destroyPlayer(); return; }
+    if (inv.y + inv.h >= floorLine) { this.gameOver(); return; }
     for (j = this.shields.length - 1; j >= 0; j--) {
-      if (this.overlap(inv, this.shields[j])) {
-        this.shields.splice(j, 1);
-        hitAny = true;
-      }
-    }
-    if (hitAny) {
-      inv.alive = false;
-      this.alive--;
-      playExplosion();
+      if (this.overlap(inv, this.shields[j])) this.shields.splice(j, 1);
     }
   }
 
@@ -631,6 +747,7 @@ Game.prototype.render = function () {
     this.text(c, "Score: " + this.score, W / 2, 300, "20px monospace", "#ffffff");
     this.text(c, this.cabinetPlays ? "PRESS ENTER TO RESTART" : "ADD QUARTER TO RESTART", W / 2, 360, "20px monospace", "#9a9a9a");
     this.text(c, "v" + VERSION, W / 2, 420, "16px monospace", "#9a9a9a");
+    this.drawExplosions(c);
     return;
   }
 
@@ -666,6 +783,7 @@ Game.prototype.render = function () {
     c.fillRect(p.x, p.y + 6, p.w, p.h - 6);
     c.fillRect(p.x + p.w / 2 - 3, p.y, 6, 6);
   }
+  this.drawExplosions(c);
 
   c.fillStyle = "#ffffff";
   if (this.playerBullet) c.fillRect(this.playerBullet.x, this.playerBullet.y, this.playerBullet.w, this.playerBullet.h);
@@ -682,6 +800,11 @@ Game.prototype.render = function () {
     c.fillRect(12 + i * 26, H - 16, 18, 8);
   }
   this.text(c, muted ? "SOUND: OFF" : "SOUND: ON", W - 12, H - 12, "12px monospace", "#9a9a9a", "right");
+  if (this.debug.on) {
+    c.fillStyle = "#ff4fd8";
+    c.fillRect(0, H - GAME_OVER_FLOOR_MARGIN, W, 1);
+    this.text(c, "DEBUG" + (this.debug.gunOff ? " GUN-OFF" : "") + (this.debug.timeScale > 1 ? " SPEED-X" + this.debug.timeScale : "") + (this.debug.invincible ? " INVINCIBLE" : ""), W / 2, 34, "12px monospace", "#dcff69");
+  }
   if (this.state === "waveTransition") {
     this.text(c, "WAVE " + (this.wave + 1) + " INCOMING", W / 2, 300, "24px monospace", "#4fd8ff");
   }
@@ -703,6 +826,18 @@ addQuarterButton.addEventListener("click", function () {
 });
 buyFireControlButton.addEventListener("click", function () {
   game.buyFireControl();
+});
+debugToggleButton.addEventListener("click", function () {
+  game.toggleDebugMode();
+});
+debugGunButton.addEventListener("click", function () {
+  game.toggleDebugGun();
+});
+debugSpeedButton.addEventListener("click", function () {
+  game.toggleDebugSpeed();
+});
+debugInvButton.addEventListener("click", function () {
+  game.toggleDebugInvincible();
 });
 
 window.addEventListener("keydown", function (e) {
@@ -754,7 +889,7 @@ function frame() {
   var now = performance.now();
   var dt = Math.min(0.05, (now - lastTime) / 1000);
   lastTime = now;
-  game.update(dt);
+  game.update(dt * game.debug.timeScale);
   game.render();
   requestAnimationFrame(frame);
 }
