@@ -140,3 +140,104 @@ Notes:
 
 - The `!this.debug.invincible` guard on the overlap check belongs to the user-requested debug tooling, not to GMP-01B.
 - GMP-01C's contact feedback was already in the working tree when this task closed; its verification is GMP-01C's own.
+
+## GMP-01C — Verify and document invader/ship contact feedback
+
+Completed: 2026-10-18
+
+Commit: not yet recorded; present in the current v1.6.1 worktree
+
+Result:
+
+- Contact feedback verified: an invader overlapping the ship (`index.html:703`, guarded by `!this.debug.invincible`) calls `destroyPlayer` (`index.html:542`), which spawns the configured particle explosion (`SHIP_EXPLOSION_PARTICLES`/`SHIP_EXPLOSION_LIFE`/`SHIP_EXPLOSION_SPEED`, lines 124–126) and plays the ship-destruction sound (`playPlayerExplosion`), then ends the run via `gameOver()`.
+- The explosion keeps animating on the GAME OVER render path (`drawExplosions` at `index.html:750`, before the `return`).
+- README 1.6.1 changelog entry matches this verified behavior.
+
+Verified:
+
+- Source (assistant): `destroyPlayer` calls `spawnShipExplosion()` and `playPlayerExplosion()` (lines 543–544); `drawExplosions` present on the game-over path (line 750) and the play path (line 786); constants at lines 124–126.
+- Browser (user-run): invader/ship contact shows the particle explosion and plays the ship-destruction sound — PASS.
+- Browser (user-run): the explosion continues animating during the GAME OVER screen — PASS.
+- `git diff --check` passed (CRLF conversion warning on `TASKS.md` only, no whitespace findings).
+
+Notes:
+
+- Browser checks were user-run per the user's confirmation; the assistant verified the source-level items and `git diff --check` directly.
+- Closes the GMP-01C dependency that GMP-01D requires.
+
+## GMP-01D — Document and record the completed floor/contact behavior
+
+Completed: 2026-10-18
+
+Commit: not yet recorded; present in the current v1.6.2 worktree
+
+Result:
+
+- Bumped `VERSION` 1.6.1 → 1.6.2 and added the matching README changelog entry (documentation-only; no game logic, configuration, or save changed).
+- README game-rules bullet and the 1.6.1 changelog entry now state the configured floor line (`GAME_OVER_FLOOR_MARGIN = 20`, y 580) and invader-ship contact behavior.
+- Reworded regression check 17 for the new floor/contact parameters (floor check at line 704, contact at 703); its recorded result stays **NOT RUN**.
+- Executed regression check 32 and recorded the actual result: desktop at `innerWidth` 800 (both media queries false, two-column body 500px/254px, shell padding 16px/gap 12px, bezel 12.8px/4px, footer 10px, canvas CSS 466.406×349.797) and narrow via a same-origin 430 px iframe (iframe `innerWidth` 426, both media queries true, single column 399px, tightened values: shell 6px/7px, marquee 8px/10px 8px, bezel 7px/2px/8px, service panel 7px/9px, footer 8px, canvas CSS 381×285.75).
+
+Verified:
+
+- README version (1.6.2) equals `var VERSION` in `index.html` (source search).
+- Check 17 describes the finished behavior and retains its `NOT RUN` result.
+- Check 32 records the executed narrow + desktop result with method note.
+- `git diff --check` passed (CRLF conversion warnings only, no whitespace findings).
+
+Notes:
+
+- Check 32's narrow evidence exercised the real media queries against a real 426 px iframe viewport (media queries and `vw` units resolve per frame); the browser window itself was still not resized and no handheld device was used.
+- The stale `8 px` margin value in the 1.6.1 changelog entry was corrected to the shipped `20 px` so the README agrees with GMP-01A.
+- Rough edge R1 and the regression document header still describe the v1.6.0 snapshot and were intentionally left unchanged.
+
+## FND-02 - Define module contracts and extraction order
+
+Completed: 2026-10-18
+
+Commit: not yet recorded; present in the current v1.6.2 worktree
+
+Result:
+
+- Created docs/architecture/module-map.md. It maps every current index.html responsibility (all 70 top-level declarations and all 26 Game prototype methods, inventoried by source search) to exactly one owner from the docs/agents/architecture.md layout: config/, save/, arcade/, progression/, ui/, core/; interpreter/, narrative/, terminal/, and mainframe/ own nothing today.
+- Chose the target file paths (css/cabinet.css, js/config.js, js/save.js, js/arcade.js, js/progression.js, js/ui.js, js/core.js) and a 7-step extraction sequence; each step names the numbered checks in docs/testing/v1.6.0-regression.md that review it.
+- Recorded allowed dependency directions and the prohibited cycles (no arcade->ui, no save->arcade/progression, no progression->presentation, nothing imports core).
+
+Verified:
+
+- Ownership table cross-checked against the grep inventory of index.html: every function and state group has exactly one owner (toggleDebug* methods under arcade/, touchDown and listeners under ui/).
+- Every extraction step references numbered regression checks (1-32).
+- The map states static GitHub Pages operation is kept: plain script/link files, no build step or dependency.
+- git diff --check passed (CRLF conversion warnings only). No runtime file changed by this task (index.html diff is only the prior GMP-01D VERSION bump).
+
+Notes:
+
+- FND-03A must create the stylesheet at the exact path css/cabinet.css chosen by the module map.
+- No README change was made: behavior did not change, and the task forbids claiming a split before code moves.
+
+## FND-03A - Move the cabinet style block to css/cabinet.css
+
+Completed: 2026-10-18
+
+Commit: not yet recorded; present in the current v1.6.2 worktree
+
+Result:
+
+- Created `css/cabinet.css` (7165 bytes) holding the `<style>` block content byte-for-byte (the file equals the HEAD style-block bytes minus the single newline after `<style>`; the block's 6 mixed-CR line endings were preserved).
+- Replaced the whole `<style>...</style>` block in `index.html` with one `<link rel="stylesheet" href="css/cabinet.css">` line in `<head>`; no other markup, JavaScript, or file changed (index.html diff vs HEAD is only this move plus the prior GMP-01D VERSION bump).
+- README sentence updated to note the stylesheet; no version bump, no changelog entry (behavior unchanged).
+
+Verified:
+
+- Check 1 clean `localStorage`: title state, `INSERT A QUARTER TO START`, credits 0, Fire Control card hidden, INSTALL button disabled - PASS. Dirty `localStorage` (`si-hiscore=1500`, `si-cabinet-plays=7`, `si-score-credits=130`, `si-fire-control-1=1` + reload): credits 130, hiscore 1500, card visible, `INSTALLED // 20% FASTER` - PASS.
+- Check 2: canvas `id="game"` 800x600; after a manual `game.render()` call (harness rAF loop was not painting), 9454 lit pixels and all 8 title text bands lit - PASS with the manual-render caveat.
+- Check 31 desktop (harness `innerWidth` 1000): both media queries (`max-width: 780px`, `440px`) false, two-column body, footer strip present, canvas CSS 637x477.75 vs 800x600 attrs, `image-rendering: pixelated` - PASS.
+- Check 32 narrow via same-origin 430 px iframe (`innerWidth` 430): both media queries true, single column 403px, tightened values match the recorded v1.6.2 run exactly (shell 6px/7px, marquee 8px/10px 8px, bezel 7px/2px/8px, panel 7px/9px, footer 8px), canvas CSS 385x288.75 (same 45 px overhead as the recorded 426 px run), still `pixelated` - PASS. Method note: the harness cannot resize the real window; the iframe exercises the real media queries.
+- Served load (`python -m http.server 8000`): `GET /css/cabinet.css` 200 `resourceType: "stylesheet"`, no failed requests, console clean - no missing stylesheet.
+- Direct `index.html` load: the harness rejects `file://` URLs (same limitation recorded in the regression doc); verified instead that the relative link resolves to an existing file on disk (`css/cabinet.css` next to `index.html`).
+- `git diff --check` exit 0 (autocrlf warnings only, no whitespace findings).
+
+Notes:
+
+- FND-03B (config constants -> `js/config.js`, module map step 2) was queued as the single `NEXT` task, mirroring how FND-02 queued FND-03A; its requirements come from the module map extraction table.
+- The regression doc's recorded v1.6.2 values for checks 31/32 were reproduced by this run, so its `Recorded` lines were left unchanged.

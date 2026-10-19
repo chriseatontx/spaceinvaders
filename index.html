@@ -3,53 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>SPACE INVADERS // SERVICE CABINET</title>
-<style>
-  :root { color-scheme: dark; --electric: #58eeff; --acid: #dcff69; --dim: #8fb4c1; }
-  * { box-sizing: border-box; }
-  html, body { min-height: 100%; margin: 0; background: radial-gradient(circle at 50% 0, #17303e 0, #070d13 43%, #020507 100%); }
-  body { color: #e9fbff; font-family: "Courier New", Consolas, monospace; }
-  button { font: inherit; }
-  .cabinet-shell { width: min(1180px, 100%); min-height: 100vh; margin: 0 auto; padding: clamp(10px, 2vw, 26px); display: grid; align-content: center; gap: 12px; }
-  .marquee { position: relative; overflow: hidden; padding: 14px 22px 12px; border: 3px solid var(--electric); border-radius: 14px 14px 5px 5px; background: linear-gradient(135deg, #163846, #0a1721 46%, #211240); box-shadow: 0 0 0 5px #061018, 0 0 34px rgba(88,238,255,.32), inset 0 0 28px rgba(88,238,255,.12); text-align: center; letter-spacing: clamp(4px, 1.1vw, 12px); font-weight: bold; font-size: clamp(21px, 4.5vw, 48px); color: var(--electric); text-shadow: 0 0 8px var(--electric), 0 0 24px #5c53ff; }
-  .marquee::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(255,255,255,.04) 3px 4px); }
-  .marquee small { display: block; margin-top: 4px; color: var(--acid); font-size: .23em; letter-spacing: .65em; text-shadow: 0 0 8px var(--acid); }
-  .cabinet-body { display: grid; grid-template-columns: minmax(0, 1fr) 254px; gap: 14px; align-items: stretch; }
-  .screen-bezel { position: relative; min-width: 0; padding: clamp(10px, 1.6vw, 18px); border: 4px solid #285164; border-radius: 16px 16px 28px 28px; background: linear-gradient(135deg, #0a151c, #172d39 50%, #061018); box-shadow: inset 0 0 0 3px #030607, inset 0 0 32px #000, 0 16px 38px rgba(0,0,0,.48); }
-  .screen-bezel::before { content: "PLAYER TERMINAL // CABINET 07"; display: block; margin: 0 0 8px 4px; color: #6f9dac; font-size: 11px; letter-spacing: 1px; }
-  .screen-bezel::after { content: ""; position: absolute; inset: 26px clamp(10px, 1.6vw, 18px) clamp(10px, 1.6vw, 18px); border-radius: 3%; pointer-events: none; box-shadow: inset 0 0 45px rgba(0,0,0,.7), inset 0 0 15px rgba(82,231,255,.16); }
-  #game { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; background: #000; image-rendering: pixelated; }
-  .service-panel { display: flex; flex-direction: column; gap: 11px; padding: 15px; border: 3px solid #315a67; border-radius: 8px 8px 18px 18px; background: linear-gradient(160deg, #1a3440, #0c1a22 42%, #081016); box-shadow: inset 0 0 24px rgba(88,238,255,.08), 0 16px 34px rgba(0,0,0,.4); }
-  .panel-label { color: var(--dim); font-size: 10px; letter-spacing: 1.5px; }
-  .credit-readout { padding: 10px; border: 1px solid #436a70; background: #020806; color: var(--acid); text-align: center; font-size: 18px; font-weight: bold; text-shadow: 0 0 8px var(--acid); box-shadow: inset 0 0 16px rgba(147,255,106,.1); }
-  .credit-readout span { display: block; margin-top: 3px; color: #79af84; font-size: 9px; letter-spacing: 1px; text-shadow: none; }
-  .cabinet-button { cursor: pointer; padding: 12px 9px; border: 2px solid #d18a2e; border-radius: 6px; background: linear-gradient(#ffbd52, #ab551c); color: #190e05; font-weight: bold; font-size: 13px; letter-spacing: .6px; box-shadow: 0 4px 0 #563009, 0 0 14px rgba(255,185,69,.32); transition: transform .12s, filter .12s; }
-  .cabinet-button:hover, .cabinet-button:focus-visible { filter: brightness(1.14); outline: 2px solid #fff; outline-offset: 2px; }
-  .cabinet-button:active { transform: translateY(3px); box-shadow: 0 1px 0 #563009; }
-  .coin-slot { position: relative; height: 38px; margin-top: 2px; border: 2px solid #3c6068; border-radius: 5px; background: #071016; }
-  .coin-slot::before { content: ""; position: absolute; top: 8px; left: 50%; width: 70px; height: 12px; transform: translateX(-50%); border: 2px solid #071016; border-radius: 8px; background: linear-gradient(#7f9ea1, #27383b); box-shadow: inset 0 2px 3px #000; }
-  .coin-slot::after { content: "INSERT QUARTER"; position: absolute; bottom: 3px; width: 100%; color: #79a4ad; text-align: center; font-size: 8px; letter-spacing: 1px; }
-  .service-divider { height: 1px; background: #42616a; box-shadow: 0 1px #000; }
-  .score-credit { display: grid; gap: 3px; padding: 9px; border: 1px solid #365864; background: rgba(0,0,0,.26); color: var(--electric); text-align: center; font-weight: bold; }
-  .score-credit small { color: var(--dim); font-size: 9px; letter-spacing: 1px; }
-  .upgrade-card { padding: 10px; border: 1px solid #a7d95b; background: linear-gradient(135deg, rgba(115,161,58,.23), rgba(3,11,7,.76)); animation: service-pulse 1.7s ease-in-out infinite; }
-  .upgrade-card[hidden] { display: none; }
-  .upgrade-card h2 { margin: 0 0 4px; color: var(--acid); font-size: 14px; }
-  .upgrade-card p { margin: 0 0 9px; color: #b6d1bd; font-size: 11px; line-height: 1.35; }
-  .upgrade-card button { width: 100%; cursor: pointer; padding: 8px; border: 1px solid var(--acid); background: #1d3a1b; color: #efffd3; font-weight: bold; }
-  .upgrade-card button:disabled { cursor: default; border-color: #55704d; background: #1a2117; color: #849076; }
-  .debug-panel { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px dashed #d18a2e; border-radius: 6px; background: rgba(0,0,0,.3); }
-  .debug-panel[hidden] { display: none; }
-  .debug-panel h2 { margin: 0 0 4px; color: var(--acid); font-size: 12px; letter-spacing: 1px; }
-  .debug-panel button { width: 100%; cursor: pointer; padding: 8px; border: 1px solid var(--acid); background: #1d3a1b; color: #efffd3; font-weight: bold; font-size: 11px; letter-spacing: .5px; }
-  .debug-panel button[disabled] { cursor: default; border-color: #55704d; background: #1a2117; color: #849076; }
-  .debug-readout { color: var(--acid); font-size: 10px; letter-spacing: 1px; }
-  .status-light { width: 10px; height: 10px; display: inline-block; margin-right: 6px; border-radius: 50%; background: #ffbd52; box-shadow: 0 0 8px #ffbd52; vertical-align: -1px; }
-  .status-line { min-height: 31px; color: #a8c3cc; font-size: 10px; line-height: 1.35; }
-  .footer-strip { display: flex; justify-content: space-between; gap: 12px; padding: 7px 13px; border: 2px solid #294b58; border-radius: 3px 3px 12px 12px; background: #08131a; color: #6c99a6; font-size: 10px; letter-spacing: 1px; }
-  @keyframes service-pulse { 50% { border-color: #efff96; box-shadow: 0 0 13px rgba(220,255,105,.38); } }
-  @media (max-width: 780px) { .cabinet-body { grid-template-columns: 1fr; } .service-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } .panel-label, .coin-slot, .service-divider, .status-line { grid-column: 1 / -1; } .upgrade-card { grid-column: 1 / -1; } }
-  @media (max-width: 440px) { .cabinet-shell { padding: 6px; gap: 7px; } .marquee { border-radius: 8px; padding: 10px 8px; } .screen-bezel { padding: 7px; border-width: 2px; border-radius: 8px; } .screen-bezel::before { margin-bottom: 4px; font-size: 8px; } .screen-bezel::after { inset: 19px 7px 7px; } .service-panel { gap: 7px; padding: 9px; } .footer-strip { font-size: 8px; } }
-</style>
+<link rel="stylesheet" href="css/cabinet.css">
 </head>
 <body>
 <main class="cabinet-shell" aria-label="Space Invaders arcade cabinet">
@@ -100,7 +54,7 @@ var debugSpeedButton = document.getElementById("debug-speed");
 var debugInvButton = document.getElementById("debug-inv");
 var debugReadoutNode = document.getElementById("debug-readout");
 
-var VERSION = "1.6.1";
+var VERSION = "1.6.2";
 
 var CABINET_CONFIG = {
   quarterCost: 1,

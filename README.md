@@ -1,6 +1,6 @@
 # Space Invaders
 
-A browser Space Invaders cabinet in its first progression state. The original arcade game remains the center of the experience, framed by a responsive service-cabinet interface. Everything still lives in `index.html` — no build step, no dependencies, no network calls.
+A browser Space Invaders cabinet in its first progression state. The original arcade game remains the center of the experience, framed by a responsive service-cabinet interface. Everything still lives in `index.html` plus one static stylesheet (`css/cabinet.css`) — no build step, no dependencies, no network calls.
 
 ## Play it online
 
@@ -42,17 +42,18 @@ Modifier-key combinations (e.g. Alt+Arrow) are left to the browser and never dri
 - Every invader/UFO point award also grants the same number of persistent **Score Credits**. Score and high score are never spent.
 - Once 120 Score Credits are available, the service panel quietly reveals **Fire Control**. Buying it spends 120 credits and makes automatic fire 20% faster.
 - The high score persists live in `localStorage` as soon as you beat it, so it survives a reload mid-game.
-- Game over when you run out of lives, an invader touches your ship (it blows up in an animated particle burst), or the formation descends to the playfield floor below the ship. Add a quarter if needed, then press `Enter` (or tap) to restart.
+- Game over when you run out of lives, an invader touches your ship (it blows up in an animated particle burst), or an invader's bottom edge reaches the configured playfield floor 20 px above the canvas bottom (`GAME_OVER_FLOOR_MARGIN`, floor line y 580, below the ship). Add a quarter if needed, then press `Enter` (or tap) to restart.
 
 ## Version
 
-Current version: **1.6.1** (defined as `var VERSION` in `index.html` and shown on the title and game-over screens).
+Current version: **1.6.2** (defined as `var VERSION` in `index.html` and shown on the title and game-over screens).
 
 ## Changelog
 
 | Version | Release |
 | --- | --- |
-| 1.6.1 | The descent game-over threshold is now the configured playfield floor (`GAME_OVER_FLOOR_MARGIN`, 8 px above the canvas bottom) below the ship, instead of the earlier of the ship's line and the floor; an invader touching the ship now destroys it with an animated particle explosion (`SHIP_EXPLOSION_PARTICLES`, `SHIP_EXPLOSION_LIFE`, `SHIP_EXPLOSION_SPEED`) plus a ship-destruction sound, and the explosion keeps animating while the GAME OVER screen is shown |
+| 1.6.2 | Documentation-only release: the floor/contact milestone (GMP-01A–GMP-01C) is now recorded — the README game rules and regression check 17 describe the configured floor line (`GAME_OVER_FLOOR_MARGIN = 20`, y 580) and invader-ship contact, and regression check 32 was executed at narrow (426 px) and desktop (800 px) widths; no game logic, configuration, or save behavior changed |
+| 1.6.1 | The descent game-over threshold is now the configured playfield floor (`GAME_OVER_FLOOR_MARGIN`, 20 px above the canvas bottom, floor line y 580) below the ship, instead of the earlier of the ship's line and the floor; an invader touching the ship now destroys it with an animated particle explosion (`SHIP_EXPLOSION_PARTICLES`, `SHIP_EXPLOSION_LIFE`, `SHIP_EXPLOSION_SPEED`) plus a ship-destruction sound, and the explosion keeps animating while the GAME OVER screen is shown |
 | 1.6.0 | Invaders erode blockers and keep descending instead of being destroyed by contact (waves clear only on player fire); game over fires at the ship's line or the configured playfield floor; the Fire Control button's accessible name carries the config-derived cost with an explicit Score Credits label |
 | 1.5.0 | Initial cabinet presentation: arcade artwork/service panel, add-quarter cabinet plays, score-derived persistent credits, Fire Control first upgrade, and cabinet coin/service sounds |
 | 1.4.7 | Clearing the player and enemy bullets when a wave ends, so stale bullets no longer hang motionless through the "WAVE N INCOMING" beat and resume flight (and can strike) on the next wave |
